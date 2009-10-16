@@ -21,7 +21,6 @@ add_subdirectory(ns-timedep-adapt)
 add_subdirectory(neutronics-4-group)
 add_subdirectory(singular-perturbation)
 
-
 if(WITH_TRILINOS)
   add_subdirectory(trilinos-linear)
   add_subdirectory(trilinos-nonlinear)
