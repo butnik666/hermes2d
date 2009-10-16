@@ -1,144 +1,123 @@
 #include "hermes2d.h"
 #include "solver_umfpack.h"
-#include "_hermes2d_api.h"
-#include "forms.h"
 
+// The time-dependent laminar incompressible Navier-Stokes equations are
+// discretized in time via the implicit Euler method. The convective term
+// is linearized simply by replacing the velocity in front of the nabla
+// operator with the velocity from last time step. Velocity is approximated
+// using continuous elements, and pressure by means or discontinuous (L2)
+// elements. This makes the velocity discretely divergence-free, meaning
+// that the integral of div(v) over every element is zero. The problem
+// has a steady symmetric solution which is unstable. Note that after some
+// time (around t = 100), numerical errors induce oscillations. The
+// approximation becomes unsteady and thus diverges from the exact solution.
+// Interestingly, this happens even with a completely symmetric mesh.
+//
+// PDE: incompressible Navier-Stokes equations in the form
+// \partial v / \partial t - \Delta v / Re + (v \cdot \nabla) v + \nabla p = 0,
+// div v = 0
+//
+// BC: u_1 is a time-dependent constant and u_2 = 0 on Gamma_4 (inlet)
+//     u_1 = u_2 = 0 on Gamma_1 (bottom), Gamma_3 (top) and Gamma_5 (obstacle)
+//     "do nothing" on Gamma_2 (outlet)
+//
+// TODO: Implement Crank-Nicolson so that comparisons with implicit Euler can be made
+//
 // The following parameters can be played with:
 
-const double FINAL_TIME = 3600*72/t_r;    // length of time interval
-const int P_INIT_w0 = 1;       // polynomial degree for pressure
-const int P_INIT_VEL = 1;            // polynomial degree for velocity components
-const int P_INIT_w4 = 1;       // polynomial degree for the energy
+const double RE = 1000.0;            // Reynolds number
+const double VEL_INLET = 1.0;        // inlet velocity (reached after STARTUP_TIME)
+const double STARTUP_TIME = 1.0;     // during this time, inlet velocity increases gradually
+                                     // from 0 to VEL_INLET, then it stays constant
+const double TAU = 0.5;              // time step
+const double FINAL_TIME = 3000.0;    // length of time interval
+const int P_INIT_VEL = 2;            // polynomial degree for velocity components
+const int P_INIT_PRESSURE = 1;       // polynomial degree for pressure
+                                     // Note: P_INIT_VEL should always be greater than
+                                     // P_INIT_PRESSURE because of the inf-sup condition
+const double H = 5.0;                // domain height (necessary to define the parabolic
+                                     // velocity profile at inlet)
+
+//  boundary markers
+int marker_bottom = 1;
+int marker_right  = 2;
+int marker_top = 3;
+int marker_left = 4;
+int marker_obstacle = 5;
 
 // global time variable
 double TIME = 0;
 
-static void calc_pressure_func(int n,
-        scalar* w0,
-        scalar* w1,
-        scalar* w3,
-        scalar* w4,
-        scalar* result)
-{
-  for (int i = 0; i < n; i++)
-    result[i] = R/c_v * (w4[i] - (w1[i]*w1[i] + w3[i]*w3[i])/(2*w0[i]));
+// definition of boundary conditions
+int xvel_bc_type(int marker) {
+  if (marker == marker_right) return BC_NONE;
+  else return BC_ESSENTIAL;
 }
 
-class CalcPressure : public SimpleFilter
-{
-public:
-    CalcPressure(
-        MeshFunction* sln1,
-        MeshFunction* sln2,
-        MeshFunction* sln3,
-        MeshFunction* sln4,
-        int item1 = FN_VAL,
-        int item2 = FN_VAL,
-        int item3 = FN_VAL,
-        int item4 = FN_VAL
-        )
-        : SimpleFilter(calc_pressure_func, sln1, sln2, sln3, sln4,
-                item1, item2, item3, item4)
-    {}
-};
-
-static void calc_u_func(int n,
-        scalar* w0,
-        scalar* w1,
-        scalar* w3,
-        scalar* w4,
-        scalar* result)
-{
-  for (int i = 0; i < n; i++)
-    result[i] = w1[i]/w0[i];
+int yvel_bc_type(int marker) {
+  if (marker == marker_right) return BC_NONE;
+  else return BC_ESSENTIAL;
 }
 
-static void calc_w_func(int n,
-        scalar* w0,
-        scalar* w1,
-        scalar* w3,
-        scalar* w4,
-        scalar* result)
-{
-  for (int i = 0; i < n; i++)
-    result[i] = w3[i]/w0[i];
+int press_bc_type(int marker)
+  { return BC_NONE; }
+
+scalar xvel_bc_value(int marker, double x, double y) {
+  if (marker == marker_left) {
+    // time-dependent inlet velocity
+//     double val_y = VEL_INLET; //constant profile
+    double val_y = VEL_INLET * y*(H-y) / (H/2.)/(H/2.); //parabolic profile with peak VEL_INLET at y = H/2
+    if (TIME <= STARTUP_TIME) return val_y * TIME/STARTUP_TIME;
+    else return val_y;
+    return val_y;
+  }
+  else return 0;
 }
 
-class Calc_u : public SimpleFilter
-{
-public:
-    Calc_u(
-        MeshFunction* sln1,
-        MeshFunction* sln2,
-        MeshFunction* sln3,
-        MeshFunction* sln4,
-        int item1 = FN_VAL,
-        int item2 = FN_VAL,
-        int item3 = FN_VAL,
-        int item4 = FN_VAL
-        )
-        : SimpleFilter(calc_u_func, sln1, sln2, sln3, sln4,
-                item1, item2, item3, item4)
-    {}
-};
+////////////////////////////////////////////////////////////////////////////////////////////////
 
-class Calc_w : public SimpleFilter
+template<typename Real, typename Scalar>
+Scalar bilinear_form_sym_0_0_1_1(int n, double *wt, Func<Real> *u, Func<Real> *v, Geom<Real> *e, ExtData<Scalar> *ext)
 {
-public:
-    Calc_w(
-        MeshFunction* sln1,
-        MeshFunction* sln2,
-        MeshFunction* sln3,
-        MeshFunction* sln4,
-        int item1 = FN_VAL,
-        int item2 = FN_VAL,
-        int item3 = FN_VAL,
-        int item4 = FN_VAL
-        )
-        : SimpleFilter(calc_w_func, sln1, sln2, sln3, sln4,
-                item1, item2, item3, item4)
-    {}
-};
+  return int_grad_u_grad_v<Real, Scalar>(n, wt, u, v) / RE + int_u_v<Real, Scalar>(n, wt, u, v) / TAU;
+}
 
+template<typename Real, typename Scalar>
+Scalar bilinear_form_unsym_0_0_1_1(int n, double *wt, Func<Real> *u, Func<Real> *v, Geom<Real> *e, ExtData<Scalar> *ext)
+{
+  return int_w_nabla_u_v<Real, Scalar>(n, wt, ext->fn[0], ext->fn[1], u, v);
+}
+
+template<typename Real, typename Scalar>
+Scalar linear_form(int n, double *wt, Func<Real> *v, Geom<Real> *e, ExtData<Scalar> *ext)
+{
+  return int_u_v<Real, Scalar>(n, wt, ext->fn[0], v) / TAU;
+}
+
+template<typename Real, typename Scalar>
+Scalar bilinear_form_unsym_0_2(int n, double *wt, Func<Real> *p, Func<Real> *v, Geom<Real> *e, ExtData<Scalar> *ext)
+{
+  return - int_u_dvdx<Real, Scalar>(n, wt, p, v);
+}
+
+template<typename Real, typename Scalar>
+Scalar bilinear_form_unsym_1_2(int n, double *wt, Func<Real> *p, Func<Real> *v, Geom<Real> *e, ExtData<Scalar> *ext)
+{
+  return - int_u_dvdy<Real, Scalar>(n, wt, p, v);
+}
 
 
 int main(int argc, char* argv[])
 {
-  // import hermes2d
-
-  printf("Importing hermes1d\n");
-  // Initialize Python
-  Py_Initialize();
-  PySys_SetArgv(argc, argv);
-  if (import_hermes2d___hermes2d())
-      throw std::runtime_error("hermes2d failed to import.");
-  cmd("print 'Python initialized'");
-
   // load the mesh file
   Mesh mesh;
-  //mesh.load("GAMM-channel.mesh");
-  //mesh.load("channel.mesh");
-  //mesh.load("quad-diag.mesh");
-  H2DReader mloader;
-  mloader.load("domain-quad.mesh", &mesh);
+  mesh.load("domain-quad.mesh"); // unstructured triangular mesh available in domain-tri.mesh
 
   // a-priori mesh refinements
-  //mesh.refine_all_elements();
-  //mesh.refine_all_elements();
-  //mesh.refine_all_elements();
-  //mesh.refine_towards_boundary(marker_bottom, 1);
-  //mesh.refine_towards_boundary(marker_right, 10);
   mesh.refine_all_elements();
-  mesh.refine_all_elements();
-  //mesh.refine_all_elements(2);
-  //mesh.refine_all_elements(2);
-  //mesh.refine_all_elements();
-  //mesh.refine_all_elements();
-  //mesh.refine_all_elements();
-  //mesh.refine_towards_vertex(1, 10);
-  //mesh.refine_towards_vertex(2, 10);
-  //mesh.refine_all_elements();
-  //mesh.refine_towards_boundary(marker_bottom, 3);
+  mesh.refine_towards_boundary(5, 4, false);
+  mesh.refine_towards_boundary(1, 4);
+  mesh.refine_towards_boundary(3, 4);
 
   // display the mesh
   //MeshView mview("Navier-Stokes Example - Mesh", 100, 100, 1100, 400);
@@ -148,129 +127,93 @@ int main(int argc, char* argv[])
   // initialize the shapesets and the cache
   H1Shapeset shapeset_h1;
   PrecalcShapeset pss_h1(&shapeset_h1);
-
-#define L2
-
-  // this should be L2Shapeset, but hermes complains...
-#ifdef L2
   L2Shapeset shapeset_l2;
-#else
-  H1Shapeset shapeset_l2;
-#endif
   PrecalcShapeset pss_l2(&shapeset_l2);
 
   // H1 spaces for velocities and L2 for pressure
-  H1Space s0(&mesh, &shapeset_h1);
-  H1Space s1(&mesh, &shapeset_h1);
-  H1Space s3(&mesh, &shapeset_h1);
-#ifdef L2
-  L2Space s4(&mesh, &shapeset_l2);
-#else
-  H1Space s4(&mesh, &shapeset_l2);
-#endif
+  H1Space xvel(&mesh, &shapeset_h1);
+  H1Space yvel(&mesh, &shapeset_h1);
+  L2Space press(&mesh, &shapeset_l2);
 
-  register_bc(s0, s1, s3, s4);
+  // initialize boundary conditions
+  xvel.set_bc_types(xvel_bc_type);
+  xvel.set_bc_values(xvel_bc_value);
+  yvel.set_bc_types(yvel_bc_type);
+  press.set_bc_types(press_bc_type);
 
   // set velocity and pressure polynomial degrees
-  s0.set_uniform_order(P_INIT_w0);
-  s1.set_uniform_order(P_INIT_VEL);
-  s3.set_uniform_order(P_INIT_VEL);
-  s4.set_uniform_order(P_INIT_w4);
+  xvel.set_uniform_order(P_INIT_VEL);
+  yvel.set_uniform_order(P_INIT_VEL);
+  press.set_uniform_order(P_INIT_PRESSURE);
 
   // assign degrees of freedom
   int ndofs = 0;
-  ndofs += s0.assign_dofs(ndofs);
-  ndofs += s1.assign_dofs(ndofs);
-  ndofs += s3.assign_dofs(ndofs);
-  ndofs += s4.assign_dofs(ndofs);
+  ndofs += xvel.assign_dofs(ndofs);
+  ndofs += yvel.assign_dofs(ndofs);
+  ndofs += press.assign_dofs(ndofs);
 
   // initial condition: xprev and yprev are zero
-  Solution w0_prev, w1_prev, w3_prev, w4_prev;
-  set_ic(mesh, w0_prev, w1_prev, w3_prev, w4_prev);
+  Solution xprev, yprev;
+  xprev.set_zero(&mesh);
+  yprev.set_zero(&mesh);
 
   // set up weak formulation
-  WeakForm wf(4);
-  register_forms(wf, w0_prev, w1_prev, w3_prev, w4_prev);
+  WeakForm wf(3);
+  wf.add_biform(0, 0, callback(bilinear_form_sym_0_0_1_1), SYM);
+  wf.add_biform(0, 0, callback(bilinear_form_unsym_0_0_1_1), UNSYM, ANY, 2, &xprev, &yprev);
+  wf.add_biform(1, 1, callback(bilinear_form_sym_0_0_1_1), SYM);
+  wf.add_biform(1, 1, callback(bilinear_form_unsym_0_0_1_1), UNSYM, ANY, 2, &xprev, &yprev);
+  wf.add_biform(0, 2, callback(bilinear_form_unsym_0_2), ANTISYM);
+  wf.add_biform(1, 2, callback(bilinear_form_unsym_1_2), ANTISYM);
+  wf.add_liform(0, callback(linear_form), ANY, 1, &xprev);
+  wf.add_liform(1, callback(linear_form), ANY, 1, &yprev);
 
   // visualization
-  VectorView w13_view("Current Density [m/s]", 0, 0, 1500, 470);
-  ScalarView w0_view("Mass Density [Pa]", 1530, 0, 1500, 470);
-  ScalarView w4_view("Energy [Pa]", 1530, 530, 1500, 470);
-  ScalarView u_view("u", 0, 530, 1500, 470);
-  ScalarView w_view("w", 0, 1060, 1500, 470);
-  //w13_view.set_min_max_range(0, 2);
-  w0_view.show_mesh(false);
-  w4_view.show_mesh(false);
+  VectorView vview("velocity [m/s]", 0, 0, 1500, 470);
+  ScalarView pview("pressure [Pa]", 0, 530, 1500, 470);
+  vview.set_min_max_range(0, 1.6);
+  pview.show_mesh(false);
   // fixing scale width (for nicer videos). Note: creation of videos is
   // discussed in a separate example
-  //vview.fix_scale_width(5);
-  //pview.fix_scale_width(5);
+  vview.fix_scale_width(5);
+  pview.fix_scale_width(5);
 
   // set up the linear system
   UmfpackSolver umfpack;
   LinSystem sys(&wf, &umfpack);
-  sys.set_spaces(4, &s0, &s1, &s3, &s4);
-  sys.set_pss(4, &pss_h1, &pss_h1, &pss_h1, &pss_l2);
-
-  /*
-  BaseView bview;
-  bview.show(&s4);
-  bview.wait();
-  error("stop");
-  */
+  sys.set_spaces(3, &xvel, &yvel, &press);
+  sys.set_pss(3, &pss_h1, &pss_h1, &pss_l2);
 
   // main loop
   char title[100];
-  //int num_time_steps = FINAL_TIME / TAU;
-  int num_time_steps = 100000;
+  int num_time_steps = FINAL_TIME / TAU;
   for (int i = 1; i <= num_time_steps; i++)
   {
     TIME += TAU;
-    set_iteration(i);
 
-    cmd("print 'Iteration'");
     info("\n---- Time step %d, time = %g -----------------------------------", i, TIME);
 
     // this is needed to update the time-dependent boundary conditions
     ndofs = 0;
-    ndofs += s0.assign_dofs(ndofs);
-    ndofs += s1.assign_dofs(ndofs);
-    ndofs += s3.assign_dofs(ndofs);
-    ndofs += s4.assign_dofs(ndofs);
+    ndofs += xvel.assign_dofs(ndofs);
+    ndofs += yvel.assign_dofs(ndofs);
+    ndofs += press.assign_dofs(ndofs);
 
     // assemble and solve
-    Solution w0_sln, w1_sln, w3_sln, w4_sln;
+    Solution xsln, ysln, psln;
     sys.assemble();
-    insert_object("sys", LinSystem_from_C(&sys));
-    cmd("import util");
-    cmd("util.run(sys)");
-    sys.solve(4, &w0_sln, &w1_sln, &w3_sln, &w4_sln);
-    error("stop");
+    sys.solve(3, &xsln, &ysln, &psln);
 
     // visualization
-    sprintf(title, "Current density, time %g", TIME);
-    w13_view.set_title(title);
-    w13_view.show(&w1_prev, &w3_prev, EPS_LOW);
-    sprintf(title, "Mass Density, time %g", TIME);
-    w0_view.set_title(title);
-    w0_view.show(&w0_sln);
-    sprintf(title, "Energy, time %g", TIME);
-    //CalcPressure pressure(&w0_sln, &w1_sln, &w3_sln, &w4_sln);
-    Calc_u u(&w0_sln, &w1_sln, &w3_sln, &w4_sln);
-    Calc_w w(&w0_sln, &w1_sln, &w3_sln, &w4_sln);
-    //printf("energy at 0,0: %.15f\n", w4_sln.get_pt_value(0, 0));
+    sprintf(title, "Velocity, time %g", TIME);
+    vview.set_title(title);
+    vview.show(&xprev, &yprev, EPS_LOW);
+    sprintf(title, "Pressure, time %g", TIME);
+    pview.set_title(title);
+    pview.show(&psln);
 
-    w4_view.set_title(title);
-    //w4_view.show(&pressure);
-    w4_view.show(&w4_sln);
-
-    u_view.show(&u);
-    w_view.show(&w);
-
-    w0_prev = w0_sln;
-    w1_prev = w1_sln;
-    w3_prev = w3_sln;
-    w4_prev = w4_sln;
+    xprev = xsln;
+    yprev = ysln;
   }
 
   View::wait();
