@@ -1,79 +1,60 @@
 #include "forms.h"
-#include "numerical_flux.h"
-
 #include "_hermes2d_api.h"
 
-const double TAU = 1;  // this is in seconds
+const double TAU = 0.5;              // time step defined in main.cpp
 
-const double T_0 = T_z(0);
-const double p_0 = p_z(0);
-const double rho_0 = rho_z(0);
+const double R = 8.31;            // Gas constant
+const double c_v = 1.0;            // specific heat capacity
+const double g = 0;            // gravitational acceleration (set to 0 for now)
 
-int s0_bc_type(int marker) {
-    return BC_NATURAL;
+//  boundary markers
+#define marker_bottom 1;
+#define marker_right 2;
+#define marker_top 3;
+#define marker_left 4;
+
+int bc_type(int marker) {
+    return BC_ESSENTIAL;
 }
 
-int s1_bc_type(int marker) {
-    return BC_NATURAL;
+scalar s0_bc_value(int marker, double x, double y) {
+    return 1;
 }
 
-int s3_bc_type(int marker) {
-    return BC_NATURAL;
+scalar s1_bc_value(int marker, double x, double y) {
+    return 0.1;
 }
 
-int s4_bc_type(int marker) {
-    return BC_NATURAL;
+scalar s3_bc_value(int marker, double x, double y) {
+    return 0;
 }
 
-// XXX: This is a hack, it should be made iteration independent
-int iterations = 0;
-void set_iteration(int i) {
-    iterations = i;
+scalar s4_bc_value(int marker, double x, double y) {
+    return 1;
 }
-
-#define rho_init(x, y) (rho_z(y*l_r))
-#define T_init(x, y) (T_z(y*l_r))
-
-double w0_init_num;
-double w1_init_num;
-double w3_init_num;
-double w4_init_num;
-double p_init_num;
-
 
 scalar w0_init(double x, double y, scalar& dx, scalar& dy) {
     dx = 0;
     dy = 0;
-    //w0_init_num = rho_z(0)/rho_r;
-    w0_init_num = 1;
-    return w0_init_num;
+    return 1;
 }
 
 scalar w1_init(double x, double y, scalar& dx, scalar& dy) {
     dx = 0;
     dy = 0;
-    //w1_init_num = rho_z(0)/rho_r * (20/u_r);
-    w1_init_num = 1;
-    return w1_init_num;
+    return 0.1;
 }
 
 scalar w3_init(double x, double y, scalar& dx, scalar& dy) {
     dx = 0;
     dy = 0;
-    //w3_init_num = rho_z(0)/rho_r * (0/u_r);
-    w3_init_num = 0;
-    return w3_init_num;
+    return 0;
 }
-
 
 scalar w4_init(double x, double y, scalar& dx, scalar& dy) {
     dx = 0;
     dy = 0;
-    //w4_init_num = rho_z(0) * T_z(0) * c_v / E_r;
-    w4_init_num = 1;
-    p_init_num = R/c_v * (w4_init_num - (w1_init_num*w1_init_num +
-                w3_init_num*w3_init_num)/(2*w0_init_num));
-    return w4_init_num;
+    return 1;
 }
 
 
@@ -240,28 +221,9 @@ double test3(double w0, double w1, double w3, double w4)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
-int counter=0;
-
 template<typename Real, typename Scalar>
 Scalar B_ij(int _i, int _j, int n, double *wt, Func<Real> *u, Func<Real> *v, Geom<Real> *e, ExtData<Scalar> *ext)
 {
-    assert(u->val != NULL);
-    assert(v->dx != NULL);
-    assert(v->dy != NULL);
-    counter++;
-    /*
-    insert_object("fn", array_double_c2numpy(ext->fn[3]->val, n));
-    insert_object("v", array_double_c2numpy(v->val, n));
-    insert_object("x", array_double_c2numpy(e->x, n));
-    insert_object("y", array_double_c2numpy(e->y, n));
-    insert_object("tau", double_c2py(TAU));
-    */
-    insert_object("i", int_c2py(_i));
-    insert_object("j", int_c2py(_j));
-    insert_object("counter", int_c2py(counter));
-    //cmd("print '-'*40");
-    //cmd("print 'B_ij called, counter=', counter");
-    //cmd("print 'i=%d j=%d' % (i, j)");
     double delta_ij;
     if (_i == _j)
         delta_ij = 1;
@@ -288,153 +250,20 @@ Scalar B_ij(int _i, int _j, int n, double *wt, Func<Real> *u, Func<Real> *v, Geo
 template<typename Real, typename Scalar>
 Scalar S_ij(int _i, int _j, int n, double *wt, Func<Real> *u, Func<Real> *v, Geom<Real> *e, ExtData<Scalar> *ext)
 {
-    double w0, w1, w3, w4;
-        w0 = ext->fn[0]->val[0];
-        w1 = ext->fn[1]->val[0];
-        w3 = ext->fn[2]->val[0];
-        w4 = ext->fn[3]->val[0];
-
-    //printf("BC left: (%d, %d; x=%f y=%f)\n", _i, _j, e->x[0], e->y[0]);
-    //printf("    state: (%f, %f, %f, %f)\n", w0, w1, w3, w4);
-    /*
-            printf("  vvv: %d\n", n);
-            printf("   u:");
-            for (int j = 0; j<n;j++)
-                printf("%f ", u->val[j]);
-            printf("\n");
-            printf("   v:");
-            for (int j = 0; j<n;j++)
-                printf("%f ", v->val[j]);
-            printf("\n");
-            */
     Scalar result = 0;
-    for (int i = 0; i < n; i++) {
-        w0 = ext->fn[0]->val[i];
-        w1 = ext->fn[1]->val[i];
-        w3 = ext->fn[2]->val[i];
-        w4 = ext->fn[3]->val[i];
+    for (int i = 0; i < n; i++)
         result += wt[i] * (
-                A_x(_i, _j, w0, w1, w3, w4) * e->nx[i]
-                +
-                A_z(_i, _j, w0, w1, w3, w4) * e->ny[i]
-                ) * u->val[i] * v->val[i];
-    }
-    /*
-    if (e->marker == marker_left) {
-        printf("   result: %f\n", result);
-    }
-    */
-    return result;
-}
-
-template<typename Real, typename Scalar>
-Scalar s_i(int _i, int n, double *wt, Func<Real> *v, Geom<Real> *e, ExtData<Scalar> *ext)
-{
-    double w0, w1, w3, w4;
-    Scalar result = 0;
-    //printf("BC: n=%d; marker=%d\n", n, e->marker);
-    for (int i = 0; i < n; i++) {
-        w0 = ext->fn[0]->val[i];
-        w1 = ext->fn[1]->val[i];
-        w3 = ext->fn[2]->val[i];
-        w4 = ext->fn[3]->val[i];
-        double _rho = w0;
-        double _u = w1/w0;
-        double _w = w3/w0;
-        double _E = w4;
-        double _v2 = _u*_u+_w*_w;
-        double _p = (kappa-1)*(_E - _rho*_v2/2);
-        double _c = sqrt(kappa*_p/_rho);
-        double _M = sqrt(_v2)/_c;
-        double un = _u*e->nx[i] + _w*e->ny[i];
-        // we build a new state w?_new that we want to impose
-        double w0_new, w1_new, w3_new, w4_new;
-        int right_or_left = 0;
-        if (e->marker == marker_left || e->marker == marker_right)
-            right_or_left = 1;
-        else
-            right_or_left = 0;
-        right_or_left = 1;
-
-        if  (!right_or_left) {
-            _u = _u-un * e->nx[i];
-            _w = _w-un * e->ny[i];
-            w0_new = w0;
-            w1_new = _u * w0;
-            w3_new = _w * w0;
-            w4_new = w4;
-        } else {
-            if (un > 0) {
-                // outlet
-                if (_M >= 1.) {
-                    // supersonic
-                    // we take everything from inside
-                    w0_new = w0;
-                    w1_new = w1;
-                    w3_new = w3;
-                    w4_new = w4;
-                }
-                else {
-                    // subsonic
-                    // take p from the outside state, the rest from the inside
-                    w0_new = w0;
-                    w1_new = w1;
-                    w3_new = w3;
-                    w4_new = p_init_num * c_v / R + (w1*w1+w3*w3)/(2*w0);
-                }
-            }
-            else {
-                // inlet
-                if (_M >= 1.) {
-                    // supersonic
-                    // take everything from outside
-                    w0_new = w0_init_num;
-                    w1_new = w1_init_num;
-                    w3_new = w3_init_num;
-                    w4_new = w4_init_num;
-                }
-                else {
-                    // subsonic
-                    // take rho, u, w from the outside state
-                    w0_new = w0_init_num;
-                    w1_new = w1_init_num;
-                    w3_new = w3_init_num;
-                    // calculate E:
-                    double v2 = w1_new*w1_new+w3_new*w3_new;
-                    w4_new = _p * c_v / R + v2 / (2*w0_new);
-                }
-            }
-        }
-        // we only impose the difference to the inside state:
-        w0_new -= w0;
-        w1_new -= w1;
-        w3_new -= w3;
-        w4_new -= w4;
-        result += wt[i] * (
-                A_x(_i, 0, w0, w1, w3, w4) * w0_new * e->nx[i]
-                +
-                A_x(_i, 1, w0, w1, w3, w4) * w1_new * e->nx[i]
-                +
-                A_x(_i, 2, w0, w1, w3, w4) * w3_new * e->nx[i]
-                +
-                A_x(_i, 3, w0, w1, w3, w4) * w4_new * e->nx[i]
-                +
-                A_z(_i, 0, w0, w1, w3, w4) * w0_new * e->ny[i]
-                +
-                A_z(_i, 1, w0, w1, w3, w4) * w1_new * e->ny[i]
-                +
-                A_z(_i, 2, w0, w1, w3, w4) * w3_new * e->ny[i]
-                +
-                A_z(_i, 3, w0, w1, w3, w4) * w4_new * e->ny[i]
-                ) * v->val[i];
-    }
-    /*
-    if (e->marker == marker_left) {
-        printf("BC left: (%d; x=%f y=%f) %f\n", _i, e->x[0], e->y[0],
-                result);
-        printf("    state: (%f, %f, %f, %f)\n", w0, w1, w3, w4);
-    }
-    */
+                A_x(_i, _j, ext->fn[0]->val[i],
+                    ext->fn[1]->val[i],
+                    ext->fn[2]->val[i],
+                    ext->fn[3]->val[i])
+                * u->val[i] * v->val[i] +
+                A_z(_i, _j, ext->fn[0]->val[i],
+                    ext->fn[1]->val[i],
+                    ext->fn[2]->val[i],
+                    ext->fn[3]->val[i])
+                * u->val[i] * v->val[i]
+                );
     return result;
 }
 
@@ -557,64 +386,18 @@ Scalar l_2(int n, double *wt, Func<Real> *v, Geom<Real> *e, ExtData<Scalar> *ext
 {
     Scalar result = 0;
     for (int i = 0; i < n; i++)
-        result += wt[i] * (ext->fn[2]->val[i]/TAU - ext->fn[0]->val[i]*g/g_r) *
-                  v->val[i];
+        result += wt[i] * (ext->fn[2]->val[i]/TAU + ext->fn[0]->val[i]*g) * \
+                  v->val[i] / TAU;
     return result;
 }
-
-//int counter=0;
 
 template<typename Real, typename Scalar>
 Scalar l_3(int n, double *wt, Func<Real> *v, Geom<Real> *e, ExtData<Scalar> *ext)
 {
-    /*
-    counter++;
-    insert_object("fn", array_double_c2numpy(ext->fn[3]->val, n));
-    insert_object("v", array_double_c2numpy(v->val, n));
-    insert_object("x", array_double_c2numpy(e->x, n));
-    insert_object("y", array_double_c2numpy(e->y, n));
-    insert_object("tau", double_c2py(TAU));
-    insert_object("counter", int_c2py(counter));
-    cmd("print '-'*40");
-    cmd("print 'l_3 called, counter=', counter");
-    */
-    //cmd("print 'fn', fn");
-    //cmd("print 'v', v");
-    //cmd("print 'x', x");
-    //cmd("print 'y', y");
-    //cmd("import util");
-    //cmd("util.plotxy(x, y, v, counter)");
-    //cmd("print tau");
-    Scalar result = 0;
-    for (int i = 0; i < n; i++)
-        result += wt[i] * (ext->fn[3]->val[i] * v->val[i]) / TAU;
-    /*
-    insert_object("result", double_c2py(result));
-    cmd("print result");
-    cmd("print '-'*40");
-    */
-    return result;
-}
-
-template<typename Real, typename Scalar>
-Scalar l_ord(int n, double *wt, Func<Real> *v, Geom<Real> *e, ExtData<Scalar> *ext)
-{
     Scalar result = 0;
     for (int i = 0; i < n; i++)
         result += wt[i] * (ext->fn[3]->val[i] * v->val[i]) / TAU;
     return result;
-}
-
-template<typename Real, typename Scalar>
-Scalar s_1(int n, double *wt, Func<Real> *v, Geom<Real> *e, ExtData<Scalar> *ext)
-{
-    return s_i(1, n, wt, v, e, ext);
-}
-
-template<typename Real, typename Scalar>
-Scalar s_2(int n, double *wt, Func<Real> *v, Geom<Real> *e, ExtData<Scalar> *ext)
-{
-    return s_i(2, n, wt, v, e, ext);
 }
 
 template<typename Real, typename Scalar>
@@ -718,17 +501,18 @@ Ord B_order(int n, double *wt, Func<Ord> *u, Func<Ord> *v, Geom<Ord> *e, ExtData
      return Ord(20);
 }
 
-Ord L_order(int n, double *wt, Func<Ord> *v, Geom<Ord> *e, ExtData<Ord> *ext)
-{
-     return Ord(20);
-}
+#define callback_bf(a) a<double, scalar>, B_order
 
-void register_bc(Space &s0, Space &s1, Space &s3, Space &s4)
+void register_bc(H1Space &s0, H1Space &s1, H1Space &s3, H1Space &s4)
 {
-    s0.set_bc_types(s0_bc_type);
-    s1.set_bc_types(s1_bc_type);
-    s3.set_bc_types(s3_bc_type);
-    s4.set_bc_types(s4_bc_type);
+    s0.set_bc_types(bc_type);
+    s0.set_bc_values(s0_bc_value);
+    s1.set_bc_types(bc_type);
+    s1.set_bc_values(s1_bc_value);
+    s3.set_bc_types(bc_type);
+    s3.set_bc_values(s3_bc_value);
+    s4.set_bc_types(bc_type);
+    s4.set_bc_values(s4_bc_value);
 }
 
 void set_ic(Mesh &mesh, Solution &w0, Solution &w1, Solution &w3, Solution &w4)
@@ -739,42 +523,48 @@ void set_ic(Mesh &mesh, Solution &w0, Solution &w1, Solution &w3, Solution &w4)
     w4.set_exact(&mesh, w4_init);
 }
 
-#define callback_bf(a) a<double, scalar>, B_order
-
-#define callback_lf_s(a) a<double, scalar>, L_order
-
-#define callback_lf(a) a<double, scalar>, L_order
-
-#define ADD_BF(i, j) wf.add_biform(i, j, callback_bf(B_##i##j), UNSYM, ANY, 4, &w0_prev, &w1_prev, &w3_prev, &w4_prev)
-
-#define ADD_BF_S(i, j) wf.add_biform_surf(i, j, callback_bf(S_##i##j), ANY_EDGE, 4, &w0_prev, &w1_prev, &w3_prev, &w4_prev)
-
-#define ADD_LF(i) wf.add_liform(i, callback_lf(l_##i), ANY, 4, &w0_prev, &w1_prev, &w3_prev, &w4_prev);
-
-#define ADD_LF_S(i) wf.add_liform_surf(i, callback_lf_s(s_##i), ANY, 4, &w0_prev, &w1_prev, &w3_prev, &w4_prev);
-
 void register_forms(WeakForm &wf, Solution &w0_prev, Solution &w1_prev,
         Solution &w3_prev, Solution &w4_prev)
 {
-    ADD_BF(0, 0); ADD_BF(0, 1); ADD_BF(0, 2); ADD_BF(0, 3);
-    ADD_BF(1, 0); ADD_BF(1, 1); ADD_BF(1, 2); ADD_BF(1, 3);
-    ADD_BF(2, 0); ADD_BF(2, 1); ADD_BF(2, 2); ADD_BF(2, 3);
-    ADD_BF(3, 0); ADD_BF(3, 1); ADD_BF(3, 2); ADD_BF(3, 3);
+    wf.add_biform(0, 0, callback_bf(B_00), UNSYM, ANY, 4, &w0_prev, &w1_prev,
+            &w3_prev, &w4_prev);
+    wf.add_biform(0, 1, callback_bf(B_01), UNSYM, ANY, 4, &w0_prev, &w1_prev,
+            &w3_prev, &w4_prev);
+    wf.add_biform(0, 2, callback_bf(B_02), UNSYM, ANY, 4, &w0_prev, &w1_prev,
+            &w3_prev, &w4_prev);
+    wf.add_biform(0, 3, callback_bf(B_03), UNSYM, ANY, 4, &w0_prev, &w1_prev,
+            &w3_prev, &w4_prev);
+    wf.add_biform(1, 0, callback_bf(B_10), UNSYM, ANY, 4, &w0_prev, &w1_prev,
+            &w3_prev, &w4_prev);
+    wf.add_biform(1, 1, callback_bf(B_11), UNSYM, ANY, 4, &w0_prev, &w1_prev,
+            &w3_prev, &w4_prev);
+    wf.add_biform(1, 2, callback_bf(B_12), UNSYM, ANY, 4, &w0_prev, &w1_prev,
+            &w3_prev, &w4_prev);
+    wf.add_biform(1, 3, callback_bf(B_13), UNSYM, ANY, 4, &w0_prev, &w1_prev,
+            &w3_prev, &w4_prev);
+    wf.add_biform(2, 0, callback_bf(B_20), UNSYM, ANY, 4, &w0_prev, &w1_prev,
+            &w3_prev, &w4_prev);
+    wf.add_biform(2, 1, callback_bf(B_21), UNSYM, ANY, 4, &w0_prev, &w1_prev,
+            &w3_prev, &w4_prev);
+    wf.add_biform(2, 2, callback_bf(B_22), UNSYM, ANY, 4, &w0_prev, &w1_prev,
+            &w3_prev, &w4_prev);
+    wf.add_biform(2, 3, callback_bf(B_23), UNSYM, ANY, 4, &w0_prev, &w1_prev,
+            &w3_prev, &w4_prev);
+    wf.add_biform(3, 0, callback_bf(B_30), UNSYM, ANY, 4, &w0_prev, &w1_prev,
+            &w3_prev, &w4_prev);
+    wf.add_biform(3, 1, callback_bf(B_31), UNSYM, ANY, 4, &w0_prev, &w1_prev,
+            &w3_prev, &w4_prev);
+    wf.add_biform(3, 2, callback_bf(B_32), UNSYM, ANY, 4, &w0_prev, &w1_prev,
+            &w3_prev, &w4_prev);
+    wf.add_biform(3, 3, callback_bf(B_33), UNSYM, ANY, 4, &w0_prev, &w1_prev,
+            &w3_prev, &w4_prev);
 
-    ADD_BF_S(0, 0); ADD_BF_S(0, 1); ADD_BF_S(0, 2); ADD_BF_S(0, 3);
-    ADD_BF_S(1, 0); ADD_BF_S(1, 1); ADD_BF_S(1, 2); ADD_BF_S(1, 3);
-    ADD_BF_S(2, 0); ADD_BF_S(2, 1); ADD_BF_S(2, 2); ADD_BF_S(2, 3);
-    ADD_BF_S(3, 0); ADD_BF_S(3, 1); ADD_BF_S(3, 2); ADD_BF_S(3, 3);
-
-    ADD_LF(0);
-    ADD_LF(1);
-    ADD_LF(2);
-    ADD_LF(3);
-
-    //ADD_LF_S(1);
-    //ADD_LF_S(2);
-
-    // this is necessary, so that we can use Python from forms.cpp:
-    if (import_hermes2d___hermes2d())
-        throw std::runtime_error("hermes2d failed to import.");
+    wf.add_liform(0, callback(l_0), ANY, 4, &w0_prev, &w1_prev, &w3_prev,
+            &w4_prev);
+    wf.add_liform(1, callback(l_1), ANY, 4, &w0_prev, &w1_prev, &w3_prev,
+            &w4_prev);
+    wf.add_liform(2, callback(l_2), ANY, 4, &w0_prev, &w1_prev, &w3_prev,
+            &w4_prev);
+    wf.add_liform(3, callback(l_3), ANY, 4, &w0_prev, &w1_prev, &w3_prev,
+            &w4_prev);
 }
