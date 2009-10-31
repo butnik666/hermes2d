@@ -649,7 +649,7 @@ cdef class LinSystem:
     def set_spaces(self, *args):
         self._spaces = args
         cdef int n = len(args)
-        cdef H1Space a, b, c
+        cdef H1Space a, b, c, d
         if n == 1:
             a = args[0]
             self.thisptr.set_spaces(n, a.thisptr)
@@ -659,6 +659,10 @@ cdef class LinSystem:
         elif n == 3:
             a, b, c = args
             self.thisptr.set_spaces(n, a.thisptr, b.thisptr, c.thisptr)
+        elif n == 4:
+            a, b, c, d = args
+            self.thisptr.set_spaces(n, a.thisptr, b.thisptr, c.thisptr,
+                    d.thisptr)
         else:
             raise NotImplementedError()
 
@@ -673,6 +677,7 @@ cdef class LinSystem:
             s1 = args[0]
             s2 = args[1]
             self.thisptr.set_pss(n, s1.thisptr, s2.thisptr)
+
         else:
             raise NotImplementedError()
 
