@@ -688,6 +688,7 @@ cdef class LinSystem:
         cdef int n = len(args)
 
         cdef Solution s0, s1, s2, s3
+
         cdef ndarray vec
         cdef scalar *pvec
 
