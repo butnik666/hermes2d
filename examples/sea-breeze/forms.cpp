@@ -1,7 +1,7 @@
 #include "forms.h"
 #include "_hermes2d_api.h"
 
-const double TAU = 1;  // this is in seconds
+const double TAU = 0.01;  // this is in seconds
 
 const double R = 287.14;            // Gas constant
 //const double T2 = 310;
@@ -38,7 +38,7 @@ int s3_bc_type(int marker) {
 }
 
 int s4_bc_type(int marker) {
-    return BC_NATURAL;
+    //return BC_NATURAL;
     if (marker=marker_bottom)
         return BC_ESSENTIAL;
     else
@@ -61,6 +61,7 @@ scalar s3_bc_value(int marker, double x, double y) {
 
 scalar s4_bc_value(int marker, double x, double y) {
     return rho_0 * c_v * T_0 * (1 + tanh(x/50000));
+    //return rho_0 * c_v * T_0;
 }
 
 // Empirical relations of initial distributions valid for 0 <= z <= 10km
