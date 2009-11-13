@@ -644,6 +644,18 @@ cdef class DummySolver(Solver):
     def __dealloc__(self):
         delete(self.thisptr)
 
+def solve_system(A, rhs, method="scipy_cg"):
+    if method == "scipy_cg":
+        from scipy.sparse.linalg import cg
+        x, res = cg(A, rhs)
+        return x
+    elif method == "umfpack":
+        from scipy.sparse.linalg import factorized
+        x = factorized(A)(rhs)
+        return x
+    else:
+        raise NotImplementedError()
+
 cdef class LinSystem:
 
     def __init__(self, WeakForm wf, Solver solver):
