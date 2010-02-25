@@ -396,7 +396,7 @@ void Mesh::refine_triangle(Element* e)
   sons[3]->vn[2]->bnd = bnd[0];
 
   //set pointers to parent element for sons
-  for(int i = 0; i < 3; i++)
+  for(int i = 0; i < 4; i++)
 	  if(sons[i] != NULL)
 		  sons[i]->parent = e;
 
@@ -545,7 +545,7 @@ void Mesh::refine_quad(Element* e, int refinement)
         sons[i]->iro_cache = 0;
 
   //set pointers to parent element for sons
-  for(int i = 0; i < 3; i++)
+  for(int i = 0; i < 4; i++)
 	  if(sons[i] != NULL)
 		  sons[i]->parent = e;
 
@@ -956,6 +956,10 @@ void Mesh::copy(const Mesh* mesh)
       if (!e->cm->toplevel)
         e->cm->parent = &elements[e->cm->parent->id];
     }
+
+    //update parent pointer
+    if(e->parent != NULL)
+      e->parent = &elements[e->parent->id];
   }
 
   // update element pointers in edge nodes
@@ -1069,6 +1073,7 @@ void Mesh::copy_refine(Mesh* mesh)
       enew->nvert = 3;
       enew->iro_cache = -1;
       enew->cm = e->cm;
+      enew->parent = NULL;
 
       // set vertex and edge node pointers
       enew->vn[0] = v0;
@@ -1089,6 +1094,7 @@ void Mesh::copy_refine(Mesh* mesh)
       enew->nvert = 4;
       enew->iro_cache = -1;
       enew->cm = e->cm;
+      enew->parent = NULL;
 
       // set vertex and edge node pointers
       enew->vn[0] = v0;
@@ -1112,6 +1118,7 @@ void Mesh::copy_refine(Mesh* mesh)
     enew->userdata = e->userdata;
     if (e->is_curved())
       enew->cm = new CurvMap(e->cm);
+
   }
 
   nbase = nactive = ninitial = mesh->nbase = get_max_element_id();
@@ -1386,7 +1393,7 @@ void Mesh::refine_triangle_to_quads(Element* e)
   sons[2]->vn[2]->bnd = bnd[2];
 
   //set pointers to parent element for sons
-  for(int i = 0; i < 3; i++)
+  for(int i = 0; i < 4; i++)
 	  if(sons[i] != NULL)
 		  sons[i]->parent = e;
 
@@ -1586,7 +1593,7 @@ void Mesh::refine_quad_to_triangles(Element* e)
   }
 
   //set pointers to parent element for sons
-  for(int i = 0; i < 3; i++)
+  for(int i = 0; i < 4; i++)
 	  if(sons[i] != NULL)
 		  sons[i]->parent = e;
 
