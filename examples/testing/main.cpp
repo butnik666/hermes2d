@@ -1,46 +1,131 @@
 #include "hermes2d.h"
 #include "solver_umfpack.h"
+#include "elem_neighb.h"
 #include <iostream>
 using namespace std;
 
 //way up
-void finding_act_elem(Mesh* mesh, Element* elem, int edge_num)
+void finding_act_elem(Solution* sln, Mesh* mesh, Element* elem, int edge_num, int* orig_vertex_id, Node** road_vertices, int n_road_vertices)
 {
+
 	Node* edge = NULL;
+	Node* vertex = NULL;
 	int p1, p2; //id of parents of the edge
 
 	p1 = elem->vn[edge_num]->id;
 	p2 = elem->vn[(edge_num + 1) % elem->nvert]->id;
-	cout << p1 << " " << p2 << "\n";
+
 	edge = mesh->peek_edge_node(p1, p2);
+	vertex = mesh->peek_vertex_node(p1, p2);
+	road_vertices[n_road_vertices] = vertex;
+	n_road_vertices = n_road_vertices++;
 
 	if (edge == NULL)
 	{
-		finding_act_elem(mesh, elem->parent, edge_num);
-	} else
+		finding_act_elem(sln, mesh, elem->parent, edge_num, orig_vertex_id, road_vertices, n_road_vertices);
+
+	}
+	else
 		for (int i = 0; i < 2; i++)
 		{
-			if ((edge->elem[i] != NULL) && (edge->elem[i]->active == 1))
-				//do something
+			if ((edge->elem[i] != NULL) && (edge->elem[i]->active == 1)){
+
+				//getting to correct edge
 				cout << "way up neighb:" << edge->elem[i]->id << "\n";
+				Element* neighb = edge->elem[i];
+				int neighb_edge = -1;
+				for(int j = 0; j < neighb->nvert; j++)
+					if(neighb->en[j] == edge)
+						neighb_edge = j;
+				if(neighb_edge == -1) error("edge wasn't found");
+
+
+				int v1, v2;
+				v1 = p1;
+				v2 = p2;
+
+//				cout <<"pocet na ceste "<<road_vertices[0]->id<<"\n";
+//			cout <<v1<<" " << v2<<"\n";
+				Node* n = NULL;
+				//set active the neighbour
+				sln->set_active_element(neighb);
+
+				// go threw between elements and set correct transformation
+				for(int j = n_road_vertices; j > 0; j-- ){
+					if(road_vertices[j] == NULL)
+						if(j > 0){
+							continue;
+						}
+						else
+							error("shouldn't be here neighb doesn't have dividing");
+					else{
+						n = mesh->peek_vertex_node(road_vertices[j]->id, v1);
+						if(n == NULL){
+							n = mesh->peek_vertex_node(road_vertices[j]->id, v2);
+							sln->push_transform((neighb_edge) % neighb->nvert);
+							v1 = n->id;
+						}
+						else{
+								if(n->id == road_vertices[j-1]->id){
+									sln->push_transform(neighb_edge + 1);
+									v2 = n->id;
+								}
+								else{
+									n = mesh->peek_vertex_node(road_vertices[j]->id, v2);
+									sln->push_transform((neighb_edge) % neighb->nvert);
+									v1 = n->id;
+								}
+						}
+					}
+				}
+
+	//			cout <<"orig vertex: "<<orig_vertex_id[0]<<" " << orig_vertex_id[1]<<"\n";
+				// final transformation on active element
+				int test = 0;
+				if (orig_vertex_id[0] == road_vertices[0]->id)
+					test = 1;
+
+				if(test == 1){
+					sln->push_transform(neighb_edge);
+				}
+				else{
+					sln->push_transform((neighb_edge + 1) % neighb->nvert);
+				}
+
+				Quad2D *quad = sln->get_quad_2d();
+				int eo = quad->get_edge_points(neighb_edge);
+				sln->set_quad_order(eo);
+				double *fn = sln->get_fn_values();
+				int np = quad->get_num_points(eo);
+/*				for (int i = 0; i < np; i++)
+				printf(" % lf", fn[i]);
+				printf("\n");
+*/
+				//reset transformations
+				sln->reset_transform();
+
+			}
 		}
 }
 
 //way down
-void finding_act_elem(Mesh* mesh, Node* vertex)
+void finding_act_elem(Solution* sln, Mesh* mesh, Node* vertex, int* par_vertex_id, Neighbor* neighbs, int* road, int n_road, int use_edge, int n_vert, int active_order, int* n_neighbs)
 {
 	int son;
 	int parents[2];
 
 	Node* edge = NULL;
 	Node* n = NULL;
+	Element* neighb = NULL;
 	son = vertex->id;
 
-	parents[0] = vertex->p1;
-	parents[1] = vertex->p2;
+	parents[0] = par_vertex_id[0];
+	parents[1] = par_vertex_id[1];
 
 	for (int i = 0; i < 2; i++)
 	{
+		road[n_road] = (use_edge + i) % n_vert;
+
 		edge = mesh->peek_edge_node(son, parents[i]);
 		//test if edge is active, means on one of sides can!! be active element
 		if (edge == NULL)
@@ -48,16 +133,51 @@ void finding_act_elem(Mesh* mesh, Node* vertex)
 			n = mesh->peek_vertex_node(son, parents[i]);
 			if(n == NULL)
 				error("wasn't able to find middle vertex");
-			else
-				finding_act_elem(mesh, n);
+			else{
+				if(i == 0) par_vertex_id[1] = son;
+				else par_vertex_id[0] = son;
+
+				n_road = n_road++;
+				finding_act_elem(sln, mesh, n, par_vertex_id, neighbs, road, n_road, use_edge, n_vert, active_order, n_neighbs);
+			}
 		} else
 			//test if on one of sides is active element
 			for (int j = 0; j < 2; j++)
 			{
 				if (edge->elem[j] != NULL)
-					if (edge->elem[j]->active == 1)
+					if (edge->elem[j]->active == 1){
 						//do something
-						cout << "id: " << edge->elem[j]->id << "\n";
+							cout << "way down neighb: " << edge->elem[j]->id << "\n";
+							neighb = mesh->get_element(edge->elem[j]->id);
+							sln->set_active_element(neighb);
+							Quad2D *quad = sln->get_quad_2d();
+							int neighb_edge = -1;
+							for(int k = 0; k < neighb->nvert; k++)
+								if(neighb->en[k] == edge)
+									neighb_edge = k;
+							if(neighb_edge == -1) error("edge wasn't found");
+							int eo = quad->get_edge_points(neighb_edge);
+							int np = quad->get_num_points(eo);
+
+							sln->set_quad_order(eo);
+							double *fn = sln->get_fn_values();
+/*							for (int k = 0; k < np; k++)
+							printf(" % lf", fn[k]);
+							printf("\n");
+*/
+							//filling neighbors
+
+							for(int k = 0; k <= n_road; k++) neighbs[n_neighbs].transformations[k] = road[k];
+							int neighb_order = sln->get_fn_order();
+
+							neighbs[n_neighbs].max_order = std::max(active_order, neighb_order);
+							//in future need to set correct np and fna_values acc. max_order
+							//add correct direction
+							neighbs[n_neighbs].n_fn_values = np;
+							for(int k = 0; k <= np; k++) neighbs[n_neighbs].fn_values[k] = fn[k];
+							n_neighbs = n_neighbs++;
+							cout <<"lokalni n_neighbs" <<n_neighbs;
+					}
 			}
 	}
 }
@@ -103,13 +223,13 @@ int main(int argc, char* argv[])
 	H2DReader mloader;
 	mloader.load("domain.mesh", &mesh);
 
-	// perform some sample initial refinements
+	// perform some sample initial refinements//do nothing,  means that there is only one dividing
 	mesh.refine_all_elements(2); // Refines all elements.
   mesh.refine_towards_vertex(2, 1);    // Refines mesh towards vertex #3 (4x).
   mesh.refine_towards_boundary(2, 1);  // Refines all elements along boundary 2 (4x).
   mesh.refine_all_elements();          // Refines element #86 isotropically.
-  mesh.refine_element(30, 0);         // Refines element #112 isotropically.
-  mesh.refine_all_elements();
+  mesh.refine_element(18, 0);         // Refines element #18 isotropically.
+//  mesh.refine_all_elements();
   // initialize the shapeset and the cache
    L2Shapeset shapeset;
    PrecalcShapeset pss(&shapeset);
@@ -126,7 +246,7 @@ int main(int argc, char* argv[])
 
    // display the mesh
     MeshView mview("Hello world!", 100, 100, 500, 500);  // (100, 100) is the upper left corner position
-    mview.show(&mesh);                                   // 500 x 500 is the window size
+//    mview.show(&mesh);                                   // 500 x 500 is the window size
 
 
    Solution sln;
@@ -146,35 +266,27 @@ int main(int argc, char* argv[])
    sys.assemble();
    sys.solve(1, &sln);
 
-   //testing of transformations
-
-/*   Element* center = mesh.get_element(50);
-   sln.set_active_element(center);
-   sln.push_transform(3);
-   Quad2D* quad = sln.get_quad_2d();
-   int eo = quad->get_edge_points(1);
-   sln.set_quad_order(eo);
-   double *fn = sln.get_fn_values();
-
-   // print the values
-   printf("%d: ", 1);
-   int np = quad->get_num_points(eo);
-   for (int i = 0; i < np; i++)
-   printf(" % lf", fn[i]);
-   printf("\n");
-*/
 
   //my code
+
+  Quad2D* quad = sln.get_quad_2d();
+  int max_order = quad->get_max_order();
+  int max_integ_n_points = quad->get_num_points(max_order);
+  max_integ_n_points = sqrt(max_integ_n_points);
+
 	Element* e = NULL;
 	Element* neighb;
+	int active_order = -1; //order of solution on active element
 	for_all_active_elements(e, &mesh)
 			{
-		printf("vertices: %d %d %d %d\n", e->vn[0]->id,	e->vn[1]->id, e->vn[2]->id, e->vn[3]->id);
+		active_order = sln.get_fn_order();
+		printf("element: %d \n\n\n", e->id);
 		for (int i = 0; i < e->nvert; i++)
-				{
+		{
+			Neighbor* neighbs;
 					if (e->en[i]->bnd == 0)
 					{
-//						printf("element id:%d , edge: %d, vertices: %d %d \n", e->id,	e->en[i]->id, e->en[i]->p1, e->en[i]->p2);
+		//				printf("element id:%d , edge: %d, vertices: %d %d \n", e->id,	e->en[i]->id, e->en[i]->p1, e->en[i]->p2);
 
 						neighb == NULL;
 						neighb = e->get_neighbor(i);
@@ -183,35 +295,99 @@ int main(int argc, char* argv[])
 							for (int j = 0; j < neighb->nvert; j++)
 							{
 								if (e->en[i] == neighb->en[j])
+									{
 									cout << "aktivni elem" << neighb->id << "\n";
+									}
 							}
 						} else
 						{
 							Node* vertex = NULL;
-							Element* parent = NULL;
 							vertex = mesh.peek_vertex_node(e->en[i]->p1, e->en[i]->p2);
-
+							int edge_num = i;
+							int orig_vertex_id[2];
+							orig_vertex_id[0] = e->vn[i]->id;
+							orig_vertex_id[1] = e->vn[(i+1) % e->nvert]->id;
 							if (vertex == NULL)
 							{
 								//way up
-								int edge_num = i;
+								Element* parent = NULL;
 								parent = e->parent;
-								finding_act_elem(&mesh, parent, edge_num);
+
+								//need change
+								//number 20 change for some parameter according push_transform()
+								Node** road_vertices;
+								road_vertices = new Node* [20]; //the number 20 is chosen according to allowed number of transformations on one element
+								int n_road_vertices = 0; //number of used vertices
+								for(int j = 0; j < 20; j++) road_vertices[j] = NULL;
+								finding_act_elem(&sln, &mesh, parent, edge_num, orig_vertex_id, road_vertices, n_road_vertices);
+								delete road_vertices;
 							} else
+							{
 								//way down
-								finding_act_elem(&mesh, vertex);
+
+							  neighbs = new Neighbor [20];
+							  int road[20]; //array for temporal transformation
+							  int n_road = 0; //number of used transformations
+							  int n_neighbs = 0;
+							  for(int j = 0; j < 20; j++)
+							  {
+							  	road[j] = -1;
+//							  	neighbs[j].fn_values = new double[max_integ_n_points];
+							  }
+								finding_act_elem(&sln, &mesh, vertex, orig_vertex_id, neighbs, road, n_road, edge_num, e->nvert, active_order, &n_neighbs);
+								cout <<"pocet sousedu: " << n_neighbs << "\n ";
+								delete neighbs;
+							}
 						}
 					}
 				}
 			}
 
+
+/*	cout<< "element 15: ";
+	e = mesh.get_element(15);
+	sln.set_active_element(e);
+	sln.push_transform(3);
+//	sln.push_transform(2);
+	Quad2D *quad = sln.get_quad_2d();
+		int eo = quad->get_edge_points(2);
+		sln.set_quad_order(eo);
+		double *fn = sln.get_fn_values();
+		int np = quad->get_num_points(eo);
+		for (int i = 0; i < np; i++)
+		printf(" % lf", fn[i]);
+		printf("\n");
+
+		//reset transformations
+		sln.reset_transform();
+//		e = mesh.get_element(15);
+//		cout << e->vn[0]->id<<" "<< e->vn[1]->id<<" "<< e->vn[2]->id<<" "<< e->vn[3]->id<<"\n";
+//		e = mesh.get_element(42);
+//		cout << e->vn[0]->id<<" "<< e->vn[1]->id<<" "<< e->vn[2]->id<<" "<< e->vn[3]->id<<"\n";
+//		cout<< "element 19: ";
+
+//		e = mesh.get_element(15);
+//		cout << e->vn[0]->id<<" "<< e->vn[1]->id<<" "<< e->vn[2]->id<<" "<< e->vn[3]->id<<"\n";
+		sln.set_active_element(e);
+		sln.push_transform(2);
+		quad = sln.get_quad_2d();
+			eo = quad->get_edge_points(2);
+			sln.set_quad_order(eo);
+			fn = sln.get_fn_values();
+			np = quad->get_num_points(eo);
+			for (int i = 0; i < np; i++)
+			printf(" % lf", fn[i]);
+			printf("\n");
+*/
+
 	 // visualize the solution
 	  ScalarView view1("Solution 1");
-	//  view1.show(&sln);
-	//  view1.wait_for_keypress();
+//	  view1.show(&sln);
+//	  view1.wait_for_keypress();
 
 	  // wait for keyboard or mouse input
 	  View::wait("Waiting for keyboard or mouse input.");
+
 	return 0;
 }
 
