@@ -165,22 +165,23 @@ void finding_act_elem(Solution* sln, Mesh* mesh, Node* vertex, int* par_vertex_i
 							printf(" % lf", fn[k]);
 							printf("\n");
 */
+
 							//filling neighbors
 
-							for(int k = 0; k <= n_road; k++) neighbs[n_neighbs].transformations[k] = road[k];
+							for(int k = 0; k <= n_road; k++) neighbs[*n_neighbs].transformations[k] = road[k];
 							int neighb_order = sln->get_fn_order();
 
-							neighbs[n_neighbs].max_order = std::max(active_order, neighb_order);
+							neighbs[*n_neighbs].max_order = std::max(active_order, neighb_order);
 							//in future need to set correct np and fna_values acc. max_order
 							//add correct direction
-							neighbs[n_neighbs].n_fn_values = np;
-							for(int k = 0; k <= np; k++) neighbs[n_neighbs].fn_values[k] = fn[k];
-							n_neighbs = n_neighbs++;
-							cout <<"lokalni n_neighbs" <<n_neighbs;
+							neighbs[*n_neighbs].n_fn_values = np;
+							for(int k = 0; k <= np; k++) neighbs[*n_neighbs].fn_values[k] = fn[k];
+							*n_neighbs = (*n_neighbs)++;
 					}
 			}
 	}
 }
+
 
 //example
 // The following parameters can be changed:
@@ -246,7 +247,7 @@ int main(int argc, char* argv[])
 
    // display the mesh
     MeshView mview("Hello world!", 100, 100, 500, 500);  // (100, 100) is the upper left corner position
-//    mview.show(&mesh);                                   // 500 x 500 is the window size
+    mview.show(&mesh);                                   // 500 x 500 is the window size
 
 
    Solution sln;
@@ -286,8 +287,6 @@ int main(int argc, char* argv[])
 			Neighbor* neighbs;
 					if (e->en[i]->bnd == 0)
 					{
-		//				printf("element id:%d , edge: %d, vertices: %d %d \n", e->id,	e->en[i]->id, e->en[i]->p1, e->en[i]->p2);
-
 						neighb == NULL;
 						neighb = e->get_neighbor(i);
 						if (neighb != NULL)
@@ -332,7 +331,8 @@ int main(int argc, char* argv[])
 							  for(int j = 0; j < 20; j++)
 							  {
 							  	road[j] = -1;
-//							  	neighbs[j].fn_values = new double[max_integ_n_points];
+							  	for(int k = 0; k < 20; k++)
+							  		neighbs[j].transformations[k] = -1;
 							  }
 								finding_act_elem(&sln, &mesh, vertex, orig_vertex_id, neighbs, road, n_road, edge_num, e->nvert, active_order, &n_neighbs);
 								cout <<"pocet sousedu: " << n_neighbs << "\n ";
@@ -344,44 +344,9 @@ int main(int argc, char* argv[])
 			}
 
 
-/*	cout<< "element 15: ";
-	e = mesh.get_element(15);
-	sln.set_active_element(e);
-	sln.push_transform(3);
-//	sln.push_transform(2);
-	Quad2D *quad = sln.get_quad_2d();
-		int eo = quad->get_edge_points(2);
-		sln.set_quad_order(eo);
-		double *fn = sln.get_fn_values();
-		int np = quad->get_num_points(eo);
-		for (int i = 0; i < np; i++)
-		printf(" % lf", fn[i]);
-		printf("\n");
-
-		//reset transformations
-		sln.reset_transform();
-//		e = mesh.get_element(15);
-//		cout << e->vn[0]->id<<" "<< e->vn[1]->id<<" "<< e->vn[2]->id<<" "<< e->vn[3]->id<<"\n";
-//		e = mesh.get_element(42);
-//		cout << e->vn[0]->id<<" "<< e->vn[1]->id<<" "<< e->vn[2]->id<<" "<< e->vn[3]->id<<"\n";
-//		cout<< "element 19: ";
-
-//		e = mesh.get_element(15);
-//		cout << e->vn[0]->id<<" "<< e->vn[1]->id<<" "<< e->vn[2]->id<<" "<< e->vn[3]->id<<"\n";
-		sln.set_active_element(e);
-		sln.push_transform(2);
-		quad = sln.get_quad_2d();
-			eo = quad->get_edge_points(2);
-			sln.set_quad_order(eo);
-			fn = sln.get_fn_values();
-			np = quad->get_num_points(eo);
-			for (int i = 0; i < np; i++)
-			printf(" % lf", fn[i]);
-			printf("\n");
-*/
 
 	 // visualize the solution
-	  ScalarView view1("Solution 1");
+//	  ScalarView view1("Solution 1");
 //	  view1.show(&sln);
 //	  view1.wait_for_keypress();
 
