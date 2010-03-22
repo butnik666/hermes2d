@@ -2,7 +2,7 @@ LIBRARY libamd.dll
 EXPORTS
 amd_malloc	DATA
 amd_realloc	DATA
-amd_calloc	DATA
+amd_calloc	DATA 
 amd_free	DATA
 amd_printf	DATA
 

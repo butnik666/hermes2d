@@ -25,6 +25,8 @@ add_subdirectory(wire)
 add_subdirectory(waveguide)
 add_subdirectory(newton-gp-timedep)
 add_subdirectory(newton-gp-timedep-adapt)
+add_subdirectory(testing)
+
 
 if(WITH_TRILINOS)
   add_subdirectory(trilinos-linear)
