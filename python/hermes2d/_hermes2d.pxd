@@ -1,6 +1,3 @@
-cdef extern from *:
-    ctypedef char const_char "const char"
-
 cdef extern from "math.h":
 
     double c_sqr "sqr"(double x)
@@ -167,18 +164,18 @@ cdef extern from "hermes2d.h":
 
     ctypedef struct FuncReal "Func<double>":
         double *val
-        double *dx, *dy	
+        double *dx, *dy 
     ctypedef struct GeomReal "Geom<double>":
         int marker
-        double *x, *y	
+        double *x, *y 
     ctypedef struct ExtDataReal "ExtData<double>":
         FuncReal **fn
     ctypedef struct FuncOrd "Func<Ord>":
         c_Ord *val
-        c_Ord *dx, *dy	
+        c_Ord *dx, *dy  
     ctypedef struct GeomOrd "Geom<Ord>":
         int marker
-        c_Ord *x, *y	
+        c_Ord *x, *y  
     ctypedef struct ExtDataOrd "ExtData<Ord>":
         pass
 
@@ -202,7 +199,6 @@ cdef extern from "hermes2d.h":
     cdef struct c_Solution "Solution":
         void set_zero(c_Mesh *m)
         void set_const(c_Mesh *m, scalar c)
-
         void set_fe_solution(c_H1Space *s, c_PrecalcShapeset *pss, scalar *vec)
         void get_fe_solution(int *Ylen, scalar **Y)
     c_Solution *new_Solution "new Solution" ()
@@ -436,9 +432,3 @@ cdef class Linearizer:
 
 cdef class Vectorizer(Linearizer):
     pass
-
-cdef class Mesh:
-    cdef c_Mesh *thisptr
-
-cdef api object array_double_c2numpy(double *A, int len)
-cdef api void array_double_numpy2c_inplace(object A_n, double **A_c, int *n)

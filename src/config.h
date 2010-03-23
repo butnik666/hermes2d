@@ -9,5 +9,6 @@
 /* #undef HAVE_IFPACK */
 /* #undef HAVE_ML */
 /* #undef HAVE_NOX */
+/* #undef HAVE_KOMPLEX */
 /* #undef WITH_EXODUSII */
 

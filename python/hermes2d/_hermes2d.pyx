@@ -173,6 +173,7 @@ def get_node_id(node):
 
 
 cdef class Mesh:
+    cdef c_Mesh *thisptr
 
     def __cinit__(self):
         self.thisptr = new_Mesh()
@@ -480,12 +481,6 @@ cdef api object Mesh_from_C(c_Mesh *h):
     n.thisptr = h
     return n
 
-cdef api object LinSystem_from_C(c_LinSystem *h):
-    cdef LinSystem n
-    n = <LinSystem>PY_NEW(LinSystem)
-    n.thisptr = h
-    return n
-
 cdef class Transformable:
     pass
 
@@ -544,12 +539,6 @@ cdef class Solution(MeshFunction):
 
     #def __dealloc__(self):
     #    delete(self.thisptr)
-
-    def copy(self, Solution s):
-        (<c_Solution *>(self.thisptr)).copy((<c_Solution *>(s.thisptr)))
-
-    def copy_by_reference(self, Solution s):
-        self.thisptr = s.thisptr
 
     def set_zero(self, Mesh m):
         (<c_Solution *>(self.thisptr)).set_zero(m.thisptr)
@@ -650,18 +639,6 @@ cdef class DummySolver(Solver):
     def __dealloc__(self):
         delete(self.thisptr)
 
-def solve_system(A, rhs, method="scipy_cg"):
-    if method == "scipy_cg":
-        from scipy.sparse.linalg import cg
-        x, res = cg(A, rhs)
-        return x
-    elif method == "umfpack":
-        from scipy.sparse.linalg import factorized
-        x = factorized(A)(rhs)
-        return x
-    else:
-        raise NotImplementedError()
-
 cdef class LinSystem:
 
     def __init__(self, WeakForm wf, Solver solver):
@@ -673,7 +650,7 @@ cdef class LinSystem:
     def set_spaces(self, *args):
         self._spaces = args
         cdef int n = len(args)
-        cdef H1Space a, b, c, d
+        cdef H1Space a, b, c
         if n == 1:
             a = args[0]
             self.thisptr.set_spaces(n, a.thisptr)
@@ -683,10 +660,6 @@ cdef class LinSystem:
         elif n == 3:
             a, b, c = args
             self.thisptr.set_spaces(n, a.thisptr, b.thisptr, c.thisptr)
-        elif n == 4:
-            a, b, c, d = args
-            self.thisptr.set_spaces(n, a.thisptr, b.thisptr, c.thisptr,
-                    d.thisptr)
         else:
             raise NotImplementedError()
 
@@ -701,7 +674,6 @@ cdef class LinSystem:
             s1 = args[0]
             s2 = args[1]
             self.thisptr.set_pss(n, s1.thisptr, s2.thisptr)
-
         else:
             raise NotImplementedError()
 
@@ -712,7 +684,6 @@ cdef class LinSystem:
         cdef int n = len(args)
 
         cdef Solution s0, s1, s2, s3
-
         cdef ndarray vec
         cdef scalar *pvec
 
@@ -1329,8 +1300,8 @@ import traceback
 
 global_namespace = {"verbose": False}
 
-cdef api void cmd(const_char *text):
-    n = run_cmd(<char *>text, global_namespace)
+cdef api void cmd(char *text):
+    n = run_cmd(text, global_namespace)
     global_namespace.update(n)
 
 cdef api void set_verbose_cmd(int verbose):
@@ -1383,12 +1354,6 @@ cdef api void insert_object(char *name, object o):
 cdef api object get_symbol(char *name):
     return global_namespace.get(name)
 
-cdef api object int_c2py(int n):
-    return n
-
-cdef api object double_c2py(double n):
-    return n
-
 cdef ndarray array_int_c2numpy(int *A, int len):
     from numpy import empty
     cdef ndarray vec = empty([len], dtype="int32")
@@ -1396,7 +1361,7 @@ cdef ndarray array_int_c2numpy(int *A, int len):
     memcpy(pvec, A, len*sizeof(int))
     return vec
 
-cdef api object array_double_c2numpy(double *A, int len):
+cdef ndarray array_double_c2numpy(double *A, int len):
     from numpy import empty
     cdef ndarray vec = empty([len], dtype="double")
     cdef double *pvec = <double *>vec.data
