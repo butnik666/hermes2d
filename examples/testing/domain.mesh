@@ -1,0 +1,25 @@
+
+a = 1.0  # size of the mesh
+b = sqrt(2)/2
+
+vertices =
+{
+  { 0, -a },    # vertex 0
+  { a, -a },    # vertex 1
+  { a, 0 },     # vertex 2
+  { 0, 0 }      # vertex 3
+}
+
+elements =
+{
+  { 0, 1, 2, 3, 0 }  # quad 0
+}
+
+boundaries =
+{
+  { 0, 1, 1 },
+  { 1, 2, 2 },
+  { 2, 3, 3 },
+  { 3, 0, 4 }
+}
+
