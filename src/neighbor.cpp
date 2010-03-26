@@ -451,6 +451,7 @@ void Neighbor::set_fn_values(Trans_flag flag){
 			for(int i = 0; i < number_integ_points; i++) local_fn_values_n[i] = sol->get_fn_values()[i];
 			fn_values_neighbor[n_neighbors] = local_fn_values_n;
 
+	
 			//fill the central
 			sol->set_active_element(central_el);
 			eo = quad->get_edge_points(active_edge, max_order);
