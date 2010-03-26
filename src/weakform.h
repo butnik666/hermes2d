@@ -52,7 +52,7 @@ enum SymFlag
 ///
 ///
 ///
-class PUBLIC_API WeakForm
+class HERMES2D_API WeakForm
 {
 public:
 
@@ -103,9 +103,9 @@ protected:
 
   struct Area  {  /*std::string name;*/  std::vector<int> markers;  };
 
-  PUBLIC_API_USED_STL_VECTOR(Area);
+  HERMES2D_API_USED_STL_VECTOR(Area);
   std::vector<Area> areas;
-  PUBLIC_API_USED_STL_VECTOR(MeshFunction*);
+  HERMES2D_API_USED_STL_VECTOR(MeshFunction*);
 
   // linear case
   struct BiFormVol   {  int i, j, sym, area;  biform_val_t  fn;  biform_ord_t  ord;  std::vector<MeshFunction*> ext;  };
@@ -116,14 +116,14 @@ protected:
 
   private:
     liform_val_t fn;
-    liform_ord_t ord; 
+    liform_ord_t ord;
     liform_val_extended_t fn_extended;
     liform_ord_extended_t ord_extended;
 
   public:
     scalar evaluate_fn(int point_cnt, double *weights, Func<double> *values_v, Geom<double> *geometry, ExtData<scalar> *values_ext_fnc, Element* element, Shapeset* shape_set, int shape_inx); ///< Evaluate value of the user defined function.
     Ord evaluate_ord(int point_cnt, double *weights, Func<Ord> *values_v, Geom<Ord> *geometry, ExtData<Ord> *values_ext_fnc, Element* element, Shapeset* shape_set, int shape_inx); ///< Evaluate order of the user defined function.
-    
+
     LiFormVol() {};
     LiFormVol(int i, int area, liform_val_t fn, liform_ord_t ord) : i(i), area(area), fn(fn), ord(ord), fn_extended(NULL), ord_extended(NULL) {};
     LiFormVol(int i, int area, liform_val_extended_t fn_extended, liform_ord_extended_t ord_extended) : i(i), area(area), fn(NULL), ord(NULL), fn_extended(fn_extended), ord_extended(ord_extended) {};
@@ -136,14 +136,14 @@ protected:
   struct ResFormVol  {  int i, area;          resform_val_t fn;  resform_ord_t ord;  std::vector<MeshFunction *> ext; };
   struct ResFormSurf {  int i, area;          resform_val_t fn;  resform_ord_t ord;  std::vector<MeshFunction *> ext; };
 
-  // linear case  
-  PUBLIC_API_USED_STL_VECTOR(BiFormVol);
+  // linear case
+  HERMES2D_API_USED_STL_VECTOR(BiFormVol);
   std::vector<BiFormVol>  bfvol;
-  PUBLIC_API_USED_STL_VECTOR(BiFormSurf);
+  HERMES2D_API_USED_STL_VECTOR(BiFormSurf);
   std::vector<BiFormSurf> bfsurf;
-  PUBLIC_API_USED_STL_VECTOR(LiFormVol);
+  HERMES2D_API_USED_STL_VECTOR(LiFormVol);
   std::vector<LiFormVol>  lfvol;
-  PUBLIC_API_USED_STL_VECTOR(LiFormSurf);
+  HERMES2D_API_USED_STL_VECTOR(LiFormSurf);
   std::vector<LiFormSurf> lfsurf;
 
   // nonlinear case

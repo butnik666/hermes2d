@@ -27,7 +27,7 @@ void Node::ref_element(Element* e)
     // store the element pointer in a free slot of 'elem'
     if (elem[0] == NULL) elem[0] = e;
     else if (elem[1] == NULL) elem[1] = e;
-    else assert_msg(0, "E no free slot 'elem'");
+    else assert_msg(false, "E no free slot 'elem'");
   }
   ref++;
 }
@@ -130,6 +130,21 @@ Mesh::Mesh() : HashTable()
 {
   nbase = nactive = ntopvert = ninitial = 0;
   seq = g_mesh_seq++;
+
+  static int first_call = 1;
+
+  if (first_call == 1) {
+    first_call = 0;
+    if (verbose_mode) {
+        printf("\n----------------------------------------------\n");
+        printf("  This is Hermes2D - a C++ library for rapid \n");
+        printf("prototyping of adaptive FEM and hp-FEM solvers\n");
+        printf("     developed by the hp-FEM group at UNR\n");
+        printf("    and distributed under the GPL license.\n");
+        printf("   For more details visit http://hpfem.org/.\n");
+        printf("----------------------------------------------\n");
+    }
+  }
 }
 
 
@@ -249,7 +264,7 @@ Element* Mesh::create_triangle(int marker, Node* v0, Node* v1, Node* v2, CurvMap
   e->nvert = 3;
   e->iro_cache = -1;
   e->cm = cm;
-	e->parent = NULL;
+  e->parent = NULL;
 
   // set vertex and edge node pointers
   e->vn[0] = v0;
@@ -276,7 +291,7 @@ Element* Mesh::create_quad(int marker, Node* v0, Node* v1, Node* v2, Node* v3, C
   e->nvert = 4;
   e->iro_cache = -1;
   e->cm = cm;
-	e->parent = NULL;
+  e->parent = NULL;
 
   // set vertex and edge node pointers
   e->vn[0] = v0;
@@ -380,10 +395,11 @@ void Mesh::refine_triangle(Element* e)
   sons[3]->vn[1]->bnd = bnd[2];
   sons[3]->vn[2]->bnd = bnd[0];
 
-	//add parent pointer to sons
-	for(int i = 0; i < 4; i++)
-		if(sons[i] != NULL)
-			sons[i]->parent = e;
+  //set pointers to parent element for sons
+  for(int i = 0; i < 4; i++)
+	  if(sons[i] != NULL)
+		  sons[i]->parent = e;
+
   // copy son pointers (could not have been done earlier because of the union)
   memcpy(e->sons, sons, 4 * sizeof(Element*));
 }
@@ -528,10 +544,10 @@ void Mesh::refine_quad(Element* e, int refinement)
       if (sons[i] != NULL)
         sons[i]->iro_cache = 0;
 
-	//add parent pointer to sons
-	for(int i = 0; i < 4; i++)
-		if(sons[i] != NULL)
-			sons[i]->parent = e;
+  //set pointers to parent element for sons
+  for(int i = 0; i < 4; i++)
+	  if(sons[i] != NULL)
+		  sons[i]->parent = e;
 
   // copy son pointers (could not have been done earlier because of the union)
   memcpy(e->sons, sons, sizeof(sons));
@@ -939,8 +955,10 @@ void Mesh::copy(const Mesh* mesh)
       if (!e->cm->toplevel)
         e->cm->parent = &elements[e->cm->parent->id];
     }
-		if(e->parent != NULL)
-			e->parent = &elements[e->parent->id];
+
+    //update parent pointer
+    if(e->parent != NULL)
+      e->parent = &elements[e->parent->id];
   }
 
   // update element pointers in edge nodes
@@ -1054,6 +1072,7 @@ void Mesh::copy_refine(Mesh* mesh)
       enew->nvert = 3;
       enew->iro_cache = -1;
       enew->cm = e->cm;
+      enew->parent = NULL;
 
       // set vertex and edge node pointers
       enew->vn[0] = v0;
@@ -1074,6 +1093,7 @@ void Mesh::copy_refine(Mesh* mesh)
       enew->nvert = 4;
       enew->iro_cache = -1;
       enew->cm = e->cm;
+      enew->parent = NULL;
 
       // set vertex and edge node pointers
       enew->vn[0] = v0;
@@ -1097,6 +1117,7 @@ void Mesh::copy_refine(Mesh* mesh)
     enew->userdata = e->userdata;
     if (e->is_curved())
       enew->cm = new CurvMap(e->cm);
+
   }
 
   nbase = nactive = ninitial = mesh->nbase = get_max_element_id();
@@ -1370,6 +1391,11 @@ void Mesh::refine_triangle_to_quads(Element* e)
   sons[2]->en[1]->bnd = bnd[2];  sons[2]->en[1]->marker = mrk[2];
   sons[2]->vn[2]->bnd = bnd[2];
 
+  //set pointers to parent element for sons
+  for(int i = 0; i < 4; i++)
+	  if(sons[i] != NULL)
+		  sons[i]->parent = e;
+
   // copy son pointers (could not have been done earlier because of the union)
   memcpy(e->sons, sons, 4 * sizeof(Element*));
 }
@@ -1564,6 +1590,11 @@ void Mesh::refine_quad_to_triangles(Element* e)
     sons[1]->en[1]->bnd = bnd[0];  sons[1]->en[1]->marker = mrk[0];
     sons[1]->vn[2]->bnd = bnd[0];
   }
+
+  //set pointers to parent element for sons
+  for(int i = 0; i < 4; i++)
+	  if(sons[i] != NULL)
+		  sons[i]->parent = e;
 
   // copy son pointers (could not have been done earlier because of the union)
   memcpy(e->sons, sons, 4 * sizeof(Element*));

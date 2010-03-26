@@ -33,7 +33,7 @@ const double EPS_HIGH   = 0.0003;
 /// solution (e.g., gradients or in Hcurl) by inserting double vertices where necessary.
 /// Linearizer also serves as a container for the resulting linearized mesh.
 ///
-class PUBLIC_API Linearizer // (implemented in linear1.cpp)
+class HERMES2D_API Linearizer // (implemented in linear1.cpp)
 {
 public:
 
@@ -59,6 +59,7 @@ public:
 
   double get_min_value() const { return min_val; }
   double get_max_value() const { return max_val; }
+  virtual void calc_vertices_aabb(double* min_x, double* max_x, double* min_y, double* max_y) const; ///< Returns axis aligned bounding box (AABB) of vertices. Assumes lock.
 
   virtual void save_data(const char* filename);
   virtual void load_data(const char* filename);
@@ -143,13 +144,14 @@ protected:
 
   mutable pthread_mutex_t data_mutex;
 
+  static void calc_aabb(double* x, double* y, int stride, int num, double* min_x, double* max_x, double* min_y, double* max_y); ///< Calculates AABB from an array of X-axis and Y-axis coordinates. The distance between values in the array is stride bytes.
 };
 
 
 /// Like the Linearizer, but generates a triangular mesh showing polynomial
 /// orders in a space, hence the funky name.
 ///
-class PUBLIC_API Orderizer : public Linearizer // (implemented in linear2.cpp)
+class HERMES2D_API Orderizer : public Linearizer // (implemented in linear2.cpp)
 {
 public:
 
@@ -182,7 +184,7 @@ protected:
 /// resulting mesh is not attempted. The class can handle different meshes in
 /// both X and Y components.
 ///
-class PUBLIC_API Vectorizer : public Linearizer // (implemented in linear3.cpp)
+class HERMES2D_API Vectorizer : public Linearizer // (implemented in linear3.cpp)
 {
 public:
 
@@ -203,6 +205,7 @@ public: //accessors
 
   virtual void save_data(const char* filename);
   virtual void load_data(const char* filename);
+  virtual void calc_vertices_aabb(double* min_x, double* max_x, double* min_y, double* max_y) const; ///< Returns axis aligned bounding box (AABB) of vertices. Assumes lock.
 
   void free();
 

@@ -11,15 +11,19 @@ set(SRC
        shapeset_hd_legendre.cpp
        shapeset_l2_legendre.cpp
        qsort.cpp norm.cpp
-       adapt_ortho_h1.cpp adapt_ortho_hcurl.cpp adapt_ortho_l2.cpp
+
+       refinement_type.cpp element_to_refine.cpp
+       ref_selectors/selector.cpp ref_selectors/optimum_selector.cpp ref_selectors/proj_based_selector.cpp ref_selectors/h1_uniform_hp.cpp ref_selectors/h1_nonuniform_hp.cpp
+       adapt_h1.cpp adapt_ortho_h1.cpp adapt_ortho_hcurl.cpp adapt_ortho_l2.cpp
+
        common.cpp matrix.cpp hermes2d.cpp weakform.cpp linsystem.cpp
        feproblem.cpp solver_nox.cpp solver_epetra.cpp solver_aztecoo.cpp
        precond_ml.cpp precond_ifpack.cpp
        refsystem.cpp nonlinsystem.cpp forms.cpp
        mesh_parser.cpp mesh_lexer.cpp
        exodusii.cpp h2d_reader.cpp
-	   
-	   neighbor.cpp
+       neighbor.cpp
+
 
        views/base_view.cpp views/mesh_view.cpp views/order_view.cpp views/scalar_view.cpp views/stream_view.cpp views/vector_base_view.cpp views/vector_view.cpp views/view.cpp views/view_data.cpp views/view_support.cpp
 
@@ -64,9 +68,10 @@ macro(LIBRARY_SETTINGS BIN)
         target_link_libraries(${BIN} ${EXODUSII_LIBRARIES})
     endif(WITH_EXODUSII)
 
-	if(WITH_VIEWER_GUI)
+    if(WITH_VIEWER_GUI)
+        include_directories(${ANTTWEAKBAR_INCLUDE_DIR})
         target_link_libraries(${BIN} ${ANTTWEAKBAR_LIBRARY})	
-	endif(WITH_VIEWER_GUI)
+    endif(WITH_VIEWER_GUI)
 endmacro(LIBRARY_SETTINGS)
 
 macro(BUILD_LIB LIB FLAGS)
@@ -79,9 +84,9 @@ macro(BUILD_LIB LIB FLAGS)
 	set_target_properties(${LIB} PROPERTIES COMPILE_FLAGS ${BUILD_FLAGS})
 	LIBRARY_SETTINGS(${LIB})
 	install(TARGETS ${LIB}
-		RUNTIME DESTINATION "${TARGET_ROOT}/bin"
-		ARCHIVE DESTINATION "${TARGET_ROOT}/lib"
-		LIBRARY DESTINATION "${TARGET_ROOT}/lib"
+		RUNTIME DESTINATION bin
+		ARCHIVE DESTINATION lib
+		LIBRARY DESTINATION lib
 	)
 endmacro(BUILD_LIB)
 
@@ -95,11 +100,12 @@ macro(BUILD_LIB_ALL LIB FLAGS)
 	set_target_properties(${LIB} PROPERTIES COMPILE_FLAGS ${BUILD_FLAGS})
 	set_target_properties(${LIB} PROPERTIES DEBUG_OUTPUT_NAME "${LIB}-debug")
 	set_target_properties(${LIB} PROPERTIES RELEASE_OUTPUT_NAME ${LIB})
-	LIBRARY_SETTINGS(${LIB})
+	LIBRARY_SETTINGS(${LIB})	
+	
 	install(TARGETS ${LIB}
-		RUNTIME DESTINATION "${TARGET_ROOT}/bin"
-		ARCHIVE DESTINATION "${TARGET_ROOT}/lib"
-		LIBRARY DESTINATION "${TARGET_ROOT}/lib")
+		RUNTIME DESTINATION bin
+		ARCHIVE DESTINATION lib
+		LIBRARY DESTINATION lib)
 		
 	#copy target to a place which is accessible by the system. This is crucial for successful debugging using MSVC.
 	if(MSVC)
@@ -171,4 +177,7 @@ endif(MSVC)
 
 file(GLOB header_files "${CMAKE_CURRENT_SOURCE_DIR}/*.h")
 install(FILES ${header_files} DESTINATION include/hermes2d)
-
+file(GLOB header_files "${CMAKE_CURRENT_SOURCE_DIR}/compat/*.h")
+install(FILES ${header_files} DESTINATION include/hermes2d/compat)
+file(GLOB header_files "${CMAKE_CURRENT_SOURCE_DIR}/views/*.h")
+install(FILES ${header_files} DESTINATION include/hermes2d/views)

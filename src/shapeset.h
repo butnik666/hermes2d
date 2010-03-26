@@ -60,7 +60,7 @@
 ///
 /// Shape functions are always real-valued.
 ///
-class PUBLIC_API Shapeset
+class HERMES2D_API Shapeset
 {
 public:
 
@@ -71,9 +71,7 @@ public:
   {
     check_mode;
     this->mode = mode;
-    #ifndef NDEBUG
     nvert = (mode == MODE_TRIANGLE) ? 3 : 4;
-    #endif
   }
 
   /// Returns the current mode.

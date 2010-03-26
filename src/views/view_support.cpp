@@ -193,7 +193,7 @@ static int set_view_title_in_thread(void* title_pars_ptr)
     debug_log("W settings title of a view that is not registered.");
     return -1;
   }
- 
+
   //create GLUT window
   glutSetWindow(title_params.view_id);
   glutSetWindowTitle(title_params.title);
@@ -291,7 +291,7 @@ static int refresh_view_in_thread(void* view_id_ptr) {
   debug_assert(!need_safe_call(), "E refresh_view_in_thread called from other thread.");
   int view_id = *((int*)view_id_ptr);
   std::map<int, View*>::iterator found_view = view_instances.find(view_id);
-  //debug_assert(found_view != view_instances.end(), "E removing of a view that is not registered");
+  debug_assert(found_view != view_instances.end(), "E refreshing a view that is not registered");
 
   //redisplay
   if (found_view != view_instances.end()) {
@@ -333,13 +333,13 @@ void on_mouse_click_stub(int button, int state, int x, int y) {
         wnd->on_right_mouse_double_click(x, y);
       else
         wnd->on_middle_mouse_double_click(x, y);
-        
+
       last_tick = 0;
       return;
     }
     last_tick = tick;
   }
-  
+
   // call proper click handler
   if (button == GLUT_LEFT_BUTTON)
   {
@@ -370,7 +370,7 @@ void on_close_stub() {
 
   //call callback
   wnd->on_close();
-  
+
   //remove view from system
   view_sync.enter();
   RemoveParams params(glutGetWindow(), false);
@@ -404,24 +404,23 @@ static bool init_glut()
 /// shutdowns GLUT
 static bool shutdown_glut()
 {
-  glut_initialized = false;
   return true;
 }
 
 /* public functions */
-void set_view_title(int view_id, const char* title) { 
+void set_view_title(int view_id, const char* title) {
   TitleParams params(view_id, title);
   call_in_thread(set_view_title_in_thread, &params);
 }
 
 int add_view(View* view, int x, int y, int width, int height, const char* title) {
-  ViewParams params(view, x, y, width, height, title);  
+  ViewParams params(view, x, y, width, height, title);
   return call_in_thread(add_view_in_thread, &params);
 }
 
 void refresh_view(int view_id) { call_in_thread(refresh_view_in_thread, &view_id); }
 
-void remove_view(int view_id) { 
+void remove_view(int view_id) {
   RemoveParams params(view_id, true);
   call_in_thread(remove_view_in_thread, &params);
 }
@@ -431,7 +430,7 @@ void force_view_thread_shutdown() {
   bool should_wait = false;
 
   view_sync.enter();
-  
+
   //destroy all views
   std::map<int, View*>::const_iterator iter = view_instances.begin();
   while (iter != view_instances.end()) {
@@ -455,7 +454,7 @@ void force_view_thread_shutdown() {
   }
 }
 
-void wait_for_all_views_close() {
+void wait_for_all_views_close(const char* text) {
   pthread_t current_thread;
   bool should_wait = false;
 
@@ -468,8 +467,20 @@ void wait_for_all_views_close() {
   view_sync.leave();
 
   //wait for thread to finish
-  if (should_wait)
+  if (should_wait) {
+    fprintf(stdout, "%s", text); fflush(stdout);
     pthread_join(current_thread, NULL);
+  }
+}
+
+void wait_for_any_key(const char* text) {
+  //wait for key
+  view_sync.enter();
+  if (view_thread != NULL) {
+    fprintf(stdout, "%s", text); fflush(stdout);
+    view_sync.wait_keypress();
+  }
+  view_sync.leave();
 }
 
 #endif // NOGLUT

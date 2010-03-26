@@ -185,10 +185,12 @@ cdef class Mesh:
         self.thisptr.copy(m.thisptr)
 
     def load(self, char* filename):
-        self.thisptr.load(filename)
+        cdef c_H2DReader mloader
+        mloader.load(filename, self.thisptr)
 
     def load_str(self, char* mesh):
-        self.thisptr.load_str(mesh)
+        cdef c_H2DReader mloader
+        mloader.load_str(mesh, self.thisptr)
 
     @property
     def elements_markers(self):
@@ -320,7 +322,15 @@ cdef class Mesh:
                 order = space.get_element_order(i)
                 h = order & ((1 << 5) - 1)
                 v = order >> 5
-                orders_list.append(int((h+v)/2))
+
+                import math
+                ord = int(((h+v)/2.0))
+                if ord == 0:
+                    ord = 1
+
+                #orders_list.append(int(((h+v)/2.0)))
+                orders_list.append(ord)
+
         return orders_list
 
     def create(self, nodes, elements, boundary, nurbs):
@@ -329,34 +339,35 @@ cdef class Mesh:
 
         Example:
 
+        >>> import hermes2d
         >>> m = hermes2d.Mesh()
         >>> m.create([
-                    [0, -1],
-                    [1, -1],
-                    [-1, 0],
-                    [0, 0],
-                    [1, 0],
-                    [-1, 1],
-                    [0, 1],
-                    [0.707106781, 0.707106781],
-                ], [
-                    [0, 1, 4, 3, 0],
-                    [3, 4, 7, 0],
-                    [3, 7, 6, 0],
-                    [2, 3, 6, 5, 0],
-                ], [
-                    [0, 1, 1],
-                    [1, 4, 2],
-                    [3, 0, 4],
-                    [4, 7, 2],
-                    [7, 6, 2],
-                    [2, 3, 4],
-                    [6, 5, 2],
-                    [5, 2, 3],
-                ], [
-                    [4, 7, 45],
-                    [7, 6, 45],
-                ])
+        ...         [0, -1],
+        ...         [1, -1],
+        ...         [-1, 0],
+        ...         [0, 0],
+        ...         [1, 0],
+        ...         [-1, 1],
+        ...         [0, 1],
+        ...         [0.707106781, 0.707106781],
+        ...     ], [
+        ...         [0, 1, 4, 3, 0],
+        ...         [3, 4, 7, 0],
+        ...         [3, 7, 6, 0],
+        ...         [2, 3, 6, 5, 0],
+        ...     ], [
+        ...         [0, 1, 1],
+        ...         [1, 4, 2],
+        ...         [3, 0, 4],
+        ...         [4, 7, 2],
+        ...         [7, 6, 2],
+        ...         [2, 3, 4],
+        ...         [6, 5, 2],
+        ...         [5, 2, 3],
+        ...     ], [
+        ...         [4, 7, 45],
+        ...         [7, 6, 45],
+        ...     ])
 
         """
         if boundary is None:
@@ -455,6 +466,9 @@ cdef class H1Space:
     def get_element_order(self, int el_id):
         return self.thisptr.get_element_order(el_id)
 
+    def get_num_dofs(self):
+        return self.thisptr.get_num_dofs()
+
 cdef api object H1Space_from_C(c_H1Space *h):
     cdef H1Space n
     n = <H1Space>PY_NEW(H1Space)
@@ -528,6 +542,10 @@ cdef class Solution(MeshFunction):
 
     def set_zero(self, Mesh m):
         (<c_Solution *>(self.thisptr)).set_zero(m.thisptr)
+
+    def set_const(self, Mesh m, scalar):
+        (<c_Solution *>(self.thisptr)).set_const(m.thisptr, scalar)
+
 
     def set_fe_solution(self, H1Space s, PrecalcShapeset pss, ndarray v):
         """
@@ -648,49 +666,62 @@ cdef class LinSystem:
     def set_pss(self, *args):
         self._pss = args
         cdef int n = len(args)
-        cdef PrecalcShapeset s
+        cdef PrecalcShapeset s1, s2
         if n == 1:
-            s = args[0]
-            self.thisptr.set_pss(n, s.thisptr)
+            s1 = args[0]
+            self.thisptr.set_pss(n, s1.thisptr)
+        elif n == 2:
+            s1 = args[0]
+            s2 = args[1]
+            self.thisptr.set_pss(n, s1.thisptr, s2.thisptr)
         else:
             raise NotImplementedError()
 
-    def solve_system(self, *args):
+    def solve_system(self, *args, lib="scipy"):
         """
         Solves the linear system using scipy.
-
-        >>> 1 + 3
-        4
-        >>> 5 + 2
-        8
-
         """
         cdef int n = len(args)
-        cdef Solution a, b, c
+
+        cdef Solution s0, s1, s2, s3
         cdef ndarray vec
         cdef scalar *pvec
-        if n == 1:
-            a = args[0]
-            #self.thisptr.solve(n, a.thisptr)
+
+        if lib == "hermes":
+            if n == 1:
+                s0 = args[0]
+                self.thisptr.solve(n, s0.thisptr)
+            elif n == 2:
+                s0, s1 = args
+                self.thisptr.solve(n, s0.thisptr, s1.thisptr)
+            elif n == 3:
+                s0, s1, s2 = args
+                self.thisptr.solve(n, s0.thisptr, s1.thisptr, s2.thisptr)
+            elif n == 4:
+                s0, s1, s2, s3 = args
+                self.thisptr.solve(n, s0.thisptr, s1.thisptr, s2.thisptr,
+                        s3.thisptr)
+            else:
+                raise NotImplementedError()
+
+        elif lib == "scipy":
+            from scipy.sparse.linalg import cg
+            from scipy.sparse.linalg import spsolve
+            from numpy import array
             A = self.get_matrix()
             rhs = self.get_rhs()
-            from scipy.sparse.linalg import cg
-            x, res = cg(A, rhs)
-            from numpy import array
+            #x, res = cg(A, rhs)
+            x = spsolve(A, rhs)
             vec = array(x, dtype="double")
             pvec = <scalar *>vec.data
-            (<c_Solution *>(a.thisptr)).set_fe_solution(
-                    self.thisptr.get_space(0),
-                    self.thisptr.get_pss(0),
-                    pvec)
-        elif n == 2:
-            a, b = args
-            self.thisptr.solve(n, a.thisptr, b.thisptr)
-        elif n == 3:
-            a, b, c = args
-            self.thisptr.solve(n, a.thisptr, b.thisptr, c.thisptr)
+
+            for i, sln in enumerate(args):
+                (<c_Solution *>((<Solution>sln).thisptr)).set_fe_solution(
+                        self.thisptr.get_space(i),
+                        self.thisptr.get_pss(i),
+                        pvec)
         else:
-            raise NotImplementedError()
+            raise NotImplementedError("Unknown library")
 
     def assemble(self):
         self.thisptr.assemble()
@@ -894,7 +925,7 @@ cdef class L2OrthoHP:
         self.thisptr.adapt(thr, strat, h_only)
 
 cdef class H1OrthoHP:
-    cdef c_H1OrthoHP *thisptr
+    #cdef c_H1OrthoHP *thisptr
 
     def __cinit__(self, *args):
         cdef int n = len(args)
@@ -910,16 +941,19 @@ cdef class H1OrthoHP:
             self.thisptr = new_H1OrthoHP(n, a.thisptr, b.thisptr, c.thisptr)
         elif n == 4:
             a, b, c, d = args
-            self.thisptr = new_H1OrthoHP(n, a.thisptr, b.thisptr, c.thisptr,
-                    d.thisptr)
+            self.thisptr = new_H1OrthoHP(n, a.thisptr, b.thisptr, c.thisptr, d.thisptr)
         else:
             raise NotImplementedError()
 
     def __dealloc__(self):
         delete(self.thisptr)
 
+
     def calc_error(self, MeshFunction sln, MeshFunction rsln):
         return self.thisptr.calc_error(sln.thisptr, rsln.thisptr)
+
+    def calc_error_2(self, MeshFunction sln1, MeshFunction sln2, MeshFunction rsln1, MeshFunction rsln2):
+        return self.thisptr.calc_error_2(sln1.thisptr, sln2.thisptr, rsln1.thisptr, rsln2.thisptr)
 
     def calc_error_4(self, sln_list, rsln_list):
         return self.thisptr.calc_error_n(4,
@@ -1109,7 +1143,6 @@ cdef class Vectorizer(Linearizer):
         return vec.reshape((ndashes, 2))
 
 cdef class View:
-
     def wait(self):
         View_wait()
 

@@ -1,11 +1,18 @@
-========
-Tutorial
-========
+=================================
+Tutorial Part I (Linear Problems)
+=================================
 
-This tutorial should give you a good idea of how to adjust existing Hermes2D examples and create your own applications. 
+This tutorial should give you a good idea of how Hermes2D works. After reading it, you will
+be able to create your own applications and/or adjust existing Hermes2D examples for your 
+purposes. At the beginning of every section we give a reference to the corresponding example in the 
+Hermes2D git repository -- there you will always find the corresponding main.cpp file, mesh file(s) etc.
+The document is under continuous development - if you find bugs or would like us to 
+improve something, let us know through the `mailing list <http://groups.google.com/group/hermes2d/>`_.
 
-Creating Mesh
--------------
+Finite Element Mesh
+-------------------
+
+**Git reference:** Tutorial example `01-mesh <http://hpfem.org/git/gitweb.cgi/hermes2d.git/tree/HEAD:/tutorial/01-mesh>`_. 
 
 Every finite element computation starts with partitioning the domain
 into a finite element mesh. Hermes uses triangles and quadrilaterals, and 
@@ -21,7 +28,7 @@ and the adaptivity will take care of the rest.
    :height: 400
    :alt: Sample finite element mesh.
 
-The source file for the above mesh can be found `here <http://hpfem.org/git/gitweb.cgi/hermes2d.git/blob/HEAD:/tutorial/01-mesh/domain.mesh>`_. The domain is defined via four macroelements -- two
+The domain is defined via four macroelements -- two
 quadrilaterals and two curvilinear triangles. The elements are enumerated from 0 to 3. 
 One also needs to enumerate all mesh vertices and assign markers to all boundary edges. 
 Boundary markers are used to link boundary conditions with the boundary edges. 
@@ -133,14 +140,12 @@ above example, we have
 
 
 Loading Mesh
-------------
+~~~~~~~~~~~~
 
 As a ''Hello world'' example, let us load the mesh we have just created, and display it in a window. 
-The main.cpp file that we are going to discuss can be found 
-`here <http://hpfem.org/git/gitweb.cgi/hermes2d.git/blob/HEAD:/tutorial/01-mesh/main.cpp>`_. 
-Every main.cpp file in the git repo contains lots of comments and instructions. Skipping those, 
+Every main.cpp file in the git repository contains lots of comments and instructions. Skipping those, 
 the `main.cpp <http://hpfem.org/git/gitweb.cgi/hermes2d.git/blob/HEAD:/tutorial/01-mesh/main.cpp>`_ 
-file of example 01-mesh/ begins with creating an instance of the class Mesh. In order to load
+file begins with creating an instance of the class Mesh. In order to load
 the mesh file, you have to create a mesh loader class (in our case that is ``H2DReader``) and
 call the method ``load()``:
 ::
@@ -186,7 +191,8 @@ Other ways of modifying meshes on the fly include
     Mesh::unrefine_element(int id)
     Mesh::unrefine_all_elements()
 
-See files `mesh1.cpp <http://hpfem.org/git/gitweb.cgi/hermes2d.git/blob/HEAD:/src/mesh1.cpp>`_ and `mesh2.cpp <http://hpfem.org/git/gitweb.cgi/hermes2d.git/blob/HEAD:/src/mesh2.cpp>`_ for details. The following code illustrates how to visualize the mesh using the class MeshView:
+See the file `src/mesh.cpp <http://hpfem.org/git/gitweb.cgi/hermes2d.git/blob/HEAD:/src/mesh.cpp>`_ for more details. 
+The following code illustrates how to visualize the mesh using the class MeshView:
 ::
 
     // display the mesh
@@ -215,11 +221,14 @@ Every main.cpp file is finished with
 so that you have a chance to see the graphical output.
 
 
-Setting Up Space
-----------------
 
-Hermes follows the mathematical concept of FEM closely -- 
-in the next step you need to construct a finite element space on top of the mesh.
+Setting Up Finite Element Space
+-------------------------------
+
+**Git reference:** Tutorial example `02-space <http://hpfem.org/git/gitweb.cgi/hermes2d.git/tree/HEAD:/tutorial/02-space>`_. 
+
+Hermes follows the mathematical concept of FEM closely -- after creating a mesh,
+in the next step one needs to construct a finite element space on it.
 The following predefined spaces are currently available:
 
 * H1Space - the most common space of continuous, piecewise-polynomial functions belonging to $H^1(\Omega) = \{ v \in L^2(\Omega); \nabla u \in [L^2(\Omega)]^2 \}$,
@@ -248,13 +257,12 @@ Therefore, Hermes offers several shapesets from which
 you need to choose one when creating a FE space. The ones which perform best
 in most computations (according to our experience) are simply called
 H1Shapeset, HcurlShapeset, HdivShapeset and L2Shapeset.
-Others can be found in the files src/shapeset* in the Hermes git repo.
+Others can be found in the files `src/shapeset* <http://hpfem.org/git/gitweb.cgi/hermes2d.git/tree/HEAD:/src>`_ in the git repo.
 Any shapeset can be used for more than one space.
 
 We are now ready for an example. The following code snippets come from
-the `main.cpp <http://hpfem.org/git/gitweb.cgi/hermes2d.git/blob/HEAD:/tutorial/02-space/main.cpp>`_ file 
-in the tutorial example 02-space. We assume that a mesh has already
-been loaded. First we create an instance of H1Shapeset and then an
+the `main.cpp <http://hpfem.org/git/gitweb.cgi/hermes2d.git/blob/HEAD:/tutorial/02-space/main.cpp>`_ file. 
+We assume that a mesh has already been loaded. First we create an instance of H1Shapeset and then an
 instance of H1Space, supplying the mesh and shapeset pointers:
 ::
 
@@ -301,6 +309,8 @@ hanging nodes to see how basis functions on irregular meshes look like.
 Solving Poisson Equation
 ------------------------
 
+**Git reference:** Tutorial example `03-poisson <http://hpfem.org/git/gitweb.cgi/hermes2d.git/tree/HEAD:/tutorial/03-poisson>`_. 
+
 Let us solve the Poisson equation
 
 .. math::
@@ -309,7 +319,7 @@ Let us solve the Poisson equation
        -\Delta u = CONST_F
 
 on the L-shaped domain $\Omega$ from the previous example,
-equipped with a homogeneous Dirichlet boundary condition
+equipped with a homogeneous (zero) Dirichlet boundary condition
 
 .. math::
     :label: poisson2
@@ -365,8 +375,8 @@ int_grad_u_grad_v and int_v:
       return CONST_F * int_v<Real, Scalar>(n, wt, v);
     }
 
-We can now state our problem in the following way
-(see the `main.cpp <http://hpfem.org/git/gitweb.cgi/hermes2d.git/blob/HEAD:/tutorial/03-poisson/main.cpp>`_ file in the tutorial example 03-poisson):
+We can now state our problem in the following way:
+
 ::
 
     // initialize the weak formulation
@@ -425,7 +435,6 @@ using the ScalarView class:
     ScalarView view("Solution");
     view.show(&sln);
 
-For the complete source code we refer to the corresponding `main.cpp <http://hpfem.org/git/gitweb.cgi/hermes2d.git/blob/HEAD:/tutorial/03-poisson/main.cpp>`_ file.
 The following figure shows the output.
 
 .. image:: img/poisson.png
@@ -468,6 +477,8 @@ conditions are natural.
 
 Dirichlet BC
 ~~~~~~~~~~~~
+
+**Git reference:** Tutorial example `04-bc-dirichlet <http://hpfem.org/git/gitweb.cgi/hermes2d.git/tree/HEAD:/tutorial/04-bc-dirichlet>`_. 
 
 Since essential conditions restrict degrees of freedom (DOF) in the FE space, 
 they need to be incorporated while the space is set up.
@@ -512,7 +523,6 @@ Further, the value callback must return the value of the Dirichlet BC:
       return (-CONST_F/4)*(x*x + y*y);
     }
 
-See the `main.cpp <http://hpfem.org/git/gitweb.cgi/hermes2d.git/blob/HEAD:/tutorial/04-bc-dirichlet/main.cpp>`_ file in the example 04-bc-dirichlet.
 It is easy to see that the solution to this problem is the function
 
 .. math::
@@ -528,6 +538,8 @@ For the value $CONST_F = -4$, the output is shown below:
 
 Neumann BC
 ~~~~~~~~~~
+
+**Git reference:** Tutorial example `05-bc-neumann <http://hpfem.org/git/gitweb.cgi/hermes2d.git/tree/HEAD:/tutorial/05-bc-neumann>`_. 
 
 Next, let us consider Neumann boundary conditions. The new model problem
 will have the form
@@ -555,6 +567,7 @@ surface integrals. In the case of the linear form $l(v)$, this means
 We have already seen volumetric linear forms in example 03-poisson. 
 Surface linear forms are implemented similarly. Our new right-hand side will
 be represented by two functions with the following prototypes:
+
 ::
 
     template<typename Real, typename Scalar>
@@ -563,8 +576,8 @@ be represented by two functions with the following prototypes:
     template<typename Real, typename Scalar>
     Scalar linear_form_surf(int n, double *wt, Func<Real> *v, Geom<Real> *e, ExtData<Scalar> *ext);
 
-and will be added to the WeakForm by the following code (see the 
-`main.cpp <http://hpfem.org/git/gitweb.cgi/hermes2d.git/blob/HEAD:/tutorial/05-bc-neumann/main.cpp>`_ file of example 05-bc-neumann):
+and will be added to the WeakForm by the following code:
+
 ::
 
     // initialize the weak formulation
@@ -574,6 +587,7 @@ and will be added to the WeakForm by the following code (see the
     wf.add_liform_surf(0, callback(linear_form_surf));
 
 The surface linear form is defined as follows:
+
 ::
 
     template<typename Real, typename Scalar>
@@ -583,12 +597,13 @@ The surface linear form is defined as follows:
     }
 
 Here, we have used the predefined surface integral surf_int_v (see the
-file `src/integrals_h1.h <http://hpfem.org/git/gitweb.cgi/hermes2d.git/blob/HEAD:/src/integrals_h1.h>`_). If the boundary conditions were more complicated, we could also
+file `src/integrals_h1.h <http://hpfem.org/git/gitweb.cgi/hermes2d.git/blob/HEAD:/src/integrals_h1.h>`_). 
+If the boundary conditions were more complicated, we could also
 have used surf_int_F_v, where F stands for an arbitrary user-supplied
 function returning the value $\partial u/\partial n$.
 
-Refer to the `main.cpp <http://hpfem.org/git/gitweb.cgi/hermes2d.git/blob/HEAD:/tutorial/05-bc-neumann/main.cpp>`_ file of example 05-bc-neumann for the complete code. Note that the mesh
-is refined towards the re-entrant corner in order to capture the singular gradient.
+Note that the mesh is refined towards the re-entrant corner in order to 
+capture the singular gradient.
 ::
 
     // load the mesh file
@@ -630,6 +645,8 @@ shown in the following figures:
 Newton BC
 ~~~~~~~~~
 
+**Git reference:** Tutorial example `06-bc-newton <http://hpfem.org/git/gitweb.cgi/hermes2d.git/tree/HEAD:/tutorial/06-bc-newton>`_. 
+
 Another common natural boundary condition is the Newton (sometimes called Robin) condition
 of the form
 
@@ -652,9 +669,6 @@ Inside this function you can use predefined
 forms such as surf_int_u_v, surf_int_F_u_v (see the
 file `src/integrals_h1.h <http://hpfem.org/git/gitweb.cgi/hermes2d.git/blob/HEAD:/src/integrals_h1.h>`_) or your custom forms.
 
-Example 06-bc-newton demonstrates typical usage of the Newton
-boundary condition on a stationary heat transfer problem, where one part of the boundary
-represents a heat exchange surface obeying the Newton law of cooling.
 The following code snippet contains the linear and bilinear forms:
 ::
 
@@ -711,13 +725,16 @@ at the re-entrant corner:
 General 2nd-Order Linear Equation
 ---------------------------------
 
+**Git reference:** Tutorial example `07-general <http://hpfem.org/git/gitweb.cgi/hermes2d.git/tree/HEAD:/tutorial/07-general>`_. 
+
+
 This example deals with a linear second-order equation of the form 
 
 .. math::
 
          -\frac{\partial}{\partial x}\left(a_{11}(x,y)\frac{\partial u}{\partial x}\right) - \frac{\partial}{\partial x}\left(a_{12}(x,y)\frac{\partial u}{\partial y}\right) - \frac{\partial}{\partial y}\left(a_{21}(x,y)\frac{\partial u}{\partial x}\right) - \frac{\partial}{\partial y}\left(a_{22}(x,y)\frac{\partial u}{\partial y}\right) + a_1(x,y)\frac{\partial u}{\partial x} + a_{21}(x,y)\frac{\partial u}{\partial y} + a_0(x,y)u = rhs(x,y),
 
-equipped with Dirichlet and/or Neumann boundary conditions. It has two goals: (a) to show the way one defines and uses space-dependent coefficients, and (b) to show how integration orders in weak forms can be handled explicitly. The code can be found in the `main.cpp <http://hpfem.org/git/gitweb.cgi/hermes2d.git/blob/HEAD:/tutorial/07-general/main.cpp>`_ file of the tutorial example 07-general.
+equipped with Dirichlet and/or Neumann boundary conditions. It has two goals: (a) to show the way one defines and uses space-dependent coefficients, and (b) to show how integration orders in weak forms can be handled explicitly. 
 
 First we define the (generally) non-constant equation coefficients:
 ::
@@ -730,7 +747,7 @@ First we define the (generally) non-constant equation coefficients:
 and so on. Then we define boundary conditions as usual. The weak formulation contains
 both volumetric and surface integrals. 
 
-The Ord class in Hermes (see the file `forms.h 
+The Ord class in Hermes (see the file `src/forms.h 
 <http://hpfem.org/git/gitweb.cgi/hermes2d.git/blob/HEAD:/src/forms.h>`_) provides
 an automatic parser of weak forms that is able to determine the integration orders for 
 algebraic expressions. So, in order to define an integration order explicitly, one can 
@@ -816,8 +833,9 @@ Note that in principle it is also possible to return a constant order (for examp
     }
 
 Currently, one cannot make the integration order dependent on spatial coordinates and such. However,
-one can assign different weak forms to elements with different material flags. This will be 
-described in example `saphir <http://hpfem.org/git/gitweb.cgi/hermes2d.git/blob/HEAD:/examples/saphir/main.cpp>`_.
+one can assign different weak forms to elements with different material flags. This is
+described in examples `iron-water <http://hpfem.org/git/gitweb.cgi/hermes2d.git/tree/HEAD:/examples/iron-water>`_,
+`saphir <http://hpfem.org/git/gitweb.cgi/hermes2d.git/blob/HEAD:/examples/saphir/main.cpp>`_ and others.
 
 Also note the sign of the surface linear form - all linear forms have to be on the right-hand side,
 all bilinear forms on the left. 
@@ -832,6 +850,8 @@ The output of this example is shown below:
 
 Systems of Equations
 --------------------
+
+**Git reference:** Tutorial example `08-system <http://hpfem.org/git/gitweb.cgi/hermes2d.git/tree/HEAD:/tutorial/08-system>`_. 
 
 So far we always have solved a single linear PDE with the weak formulation
 of the form $a(u,v) = l(v)$, where $u, v$ were continuous approximations in the
@@ -918,9 +938,7 @@ Here, $\mu$ and $\lambda$ are material constants (Lame coefficients) defined as
 where $E$ is the Young modulus and $\nu$ the Poisson ratio of the material. For
 steel, we have $E = 200$ GPa and $\nu = 0.3$. The load is $f = (0, 10^4)^T$ N.
 
-For more details we refer to the mesh file `sample.mesh <http://hpfem.org/git/gitweb.cgi/hermes2d.git/blob/HEAD:/tutorial/08-system/sample.mesh>`_ as well as to the `main.cpp <http://hpfem.org/git/gitweb.cgi/hermes2d.git/blob/HEAD:/tutorial/08-system/main.cpp>`_ file of the tutorial example 08-system. 
-
-We will again start by defining the function spaces for the two solution
+We begin with defining the function spaces for the two solution
 components, $u_1$ and $u_2$ (the $x$ and $y$ displacement). The boundary
 conditions can be implemented as
 ::
@@ -1042,12 +1060,14 @@ and a multiplier to make the displacements visible.
    :height: 300
    :alt: Elastic stress plotted on deformed domain.
 
-Transient Problems
-------------------
+Time-Dependent Problems
+-----------------------
+
+**Git reference:** Tutorial example `09-timedep <http://hpfem.org/git/gitweb.cgi/hermes2d.git/tree/HEAD:/tutorial/09-timedep>`_. 
+
 
 This section describes the implementation of a simple time-dependent
-heat transfer model that can be found in `tutorial/09-timedep <http://hpfem.org/git/gitweb.cgi/hermes2d.git/tree/HEAD:/tutorial/09-timedep>`_.
-The model describes in a naive approximation how the St. Vitus cathedral
+heat transfer model that describes, in a naive approximation, how the St. Vitus cathedral
 in Prague responds to changes in the surrounding air temperature
 during one 24-hour cycle. The geometry is shown below:
 
@@ -1202,16 +1222,19 @@ which is set to false before the time stepping begins:
     rhsonly = true;
     ls.solve(1, &tsln);
 
-For more details see the `main.cpp <http://hpfem.org/git/gitweb.cgi/hermes2d.git/blob/HEAD:/tutorial/09-timedep/main.cpp>`_ file in the tutorial example 09-timedep.
 
-Automatic Adaptivity
---------------------
+=======================================
+Tutorial Part II (Automatic Adaptivity)
+=======================================
 
 In the computations that we carried out so far, we have not paid any attention
 to the accuracy of the results. In general, a computation on a fixed mesh is
 not likely to be very accurate. There is a need for *adaptive mesh refinement
 (AMR)* algorithms that improve the quality of the approximation by refining
 mesh elements where the approximation is bad.
+
+Adaptive h-FEM and hp-FEM
+-------------------------
 
 In traditional low-order FEM, refining an element is not algorithmically complicated,
 and so the most difficult part is to find out what elements should be
@@ -1306,7 +1329,7 @@ convergence rate loses its meaning, and one should switch to convergence in term
 the number of degrees of freedom (DOF) or CPU time - Hermes provides both. 
 
 Algebraic convergence of adaptive $h$-FEM
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 When using elements of degree $p$, the convergence rate of adaptive $h$-FEM will not exceed the 
 one predicted for uniformly refined meshes (this can be explained using 
@@ -1381,10 +1404,12 @@ This is shown in the figure below.
    :height: 450
    :alt: Convergence graph.
 
-Adaptivity Example
-------------------
+Electrostatic Micromotor Problem
+--------------------------------
 
-Let us demostrate the use of automatic *hp*-adaptivity in Hermes on a linear elliptic problem
+**Git reference:** Tutorial example `10-adapt <http://hpfem.org/git/gitweb.cgi/hermes2d.git/tree/HEAD:/tutorial/10-adapt>`_. 
+
+Let us demostrate the use of adaptive h-FEM and hp-FEM on a linear elliptic problem
 concerned with the calculation of
 the electrostatic potential in the vicinity of the electrodes of an electrostatic
 micromotor. This is a MEMS device free of any coils, and thus resistive to
@@ -1426,7 +1451,8 @@ $\epsilon_r = 10$ in $\Omega_2$. The weak formulation reads
 The varying parameter $\epsilon_r$ is handled by defining two bilinear forms in the code, one for
 $\Omega_1$ and the other for $\Omega_2$. These two areas are delimited by element markers 1 and 2 in
 the mesh, and the two forms are assigned to the corresponding markers during the registration of
-the forms (see the `main.cpp <http://hpfem.org/git/gitweb.cgi/hermes2d.git/blob/HEAD:/tutorial/10-adapt/main.cpp>`_ file in the tutorial example 10-adapt):
+the forms:
+
 ::
 
     WeakForm wf(1);
@@ -1435,6 +1461,7 @@ the forms (see the `main.cpp <http://hpfem.org/git/gitweb.cgi/hermes2d.git/blob/
 
 The principal part of the example is the main adaptivity loop. In each iteration, the coarse problem
 is solved first:
+
 ::
 
     // solve the coarse problem
@@ -1449,6 +1476,7 @@ defining a temporary space with increased element orders and by assembling and s
 linear system. However, for most problems, this can be automated using the class RefSystem, which
 handles all the temporary reference meshes and spaces transparently. All it needs is a pointer to our coarse
 LinSystem. The calculation of the reference solution is as simple as the following:
+
 ::
 
     // solve the fine mesh problem
@@ -1469,6 +1497,7 @@ The method calc_error() takes pointers to the coarse and reference solutions and
     e = \frac{|| u - u_{ref} ||_{H^1}}{|| u_{ref} ||_{H^1}}.
 
 In the code this looks as follows:
+
 ::
 
     H1OrthoHP hp(1, &space);
@@ -1476,6 +1505,7 @@ In the code this looks as follows:
 
 Finally, if err_est is still above the threshold ERR_STOP, we perform one
 adaptivity step:
+
 ::
 
     if (err_est < ERR_STOP) done = true;
@@ -1485,7 +1515,11 @@ adaptivity step:
       if (ndofs >= NDOF_STOP) done = true;
     }
 
-The parameters THRESHOLD, STRATEGY, ADAPT_TYPE, ISO_ONLY and MESH_REGULARITY
+The function adapt() accepts additional optional input parameters for more 
+advanced use - see the file 
+`src/adapt_h1_ortho.h <http://hpfem.org/git/gitweb.cgi/hermes2d.git/blob/HEAD:/src/adapt_ortho_h1.h>`_ 
+for more details. 
+The basic parameters THRESHOLD, STRATEGY, ADAPT_TYPE, ISO_ONLY and MESH_REGULARITY
 have the following meaning: STRATEGY indicates which adaptive strategy we
 want to use:
 
@@ -1530,6 +1564,7 @@ solution.
 The gradient was visualized using VectorView. We have
 seen this in the previous section. We plug in the same solution for both vector
 components, but specify that its derivatives should be used:
+
 ::
 
     gview.show(&sln, &sln, EPS_NORMAL, FN_DX_0, FN_DY_0);
@@ -1573,11 +1608,61 @@ The following graph shows convergence in terms of CPU time.
    :height: 400
    :alt: CPU convergence graph for tutorial example 10-adapt.
 
-Adaptivity for Systems
-----------------------
+The Multimesh hp-FEM
+--------------------
 
-The procedure described in the previous section could be extended directly to
-systems of PDEs. In other words, two spaces can be passed into H1OrthoHP,
+In multiphysics PDE systems (or just PDE systems) it can happen that one
+physical field (solution component) has a singularity or a boundary layer 
+where other fields are smooth. If one approximates all fields on the 
+same mesh, then the necessity to refine the mesh at the singularity
+or boundary layer implies new degrees of freedom for the smooth fields 
+as well. This can be very wasteful indeed, as we will see in the next
+example that deals with a simplified Fitzhugh-Nagumo system. But let us 
+first explain briefly the main idea of the multimesh discretization 
+method that we developed to circumvent this problem.
+
+Hermes makes it possible to approximate them 
+on individual meshes. These meshes are not completely independent
+of each other -- they have a common coarse mesh that we call *master mesh*.
+The master mesh is there for algorithmic purposes only, it may not 
+even be used for discretization purposes: Every mesh in the system 
+is obtained from it via an arbitrary sequence of elementary refinements.
+This is illustrated in the following figure, where (A) is the master mesh,
+(B) - (D) three different meshes (say, for a coupled problem with three
+equations), and (E) is the virtual *union mesh* that is used for assembling.
+
+.. image:: img/multimesh/multimesh.png
+   :align: center
+   :width: 750
+   :alt: Multimesh
+
+The union mesh is not constructed physically in the computer memory -- 
+merely it serves as a hint to correctly transform integration points
+while integrating over sub-elements of the elements of the existing meshes. 
+The following figure shows the integration over an element $Q_k$ of the 
+virtual union mesh, and what are the appropriate subelements of the 
+existing elements where this integration is performed:
+
+.. image:: img/multimesh/multimesh2.png
+   :align: center
+   :width: 600
+   :alt: Multimesh
+
+As a result, the multimesh discretization of the PDE system is *monolithic*
+in the sense that *no physics is lost* -- all integrals in the 
+discrete weak formulations are evaluated exactly up to the error in the 
+numerical quadrature. In particular, we do not perform operator splitting 
+or commit errors while transferring solution data between different meshes.
+The multimesh assembling in Hermes works with all meshes at the same time, 
+there is no such thing as interpolating or projecting functions between 
+different meshes. More details about this method can be found in the 
+corresponding `research article <http://science.atmoshome.net/science?_ob=MImg&_imagekey=B6TYH-4X1J73B-V-8Y&_cdi=5619&_user=10&_pii=S0377042709005731&_orig=browse&_coverDate=08%2F18%2F2009&_sk=999999999&view=c&wchp=dGLbVzz-zSkWz&md5=6552d3390232dcffc9ca97e9bb626fb0&ie=/sdarticle.pdf>`_. 
+
+Adaptivity in the Multimesh hp-FEM
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In principle, the adaptivity procedure for single PDE could be extended 
+directly to systems of PDEs. In other words, two spaces can be passed into H1OrthoHP,
 four solutions (two coarse, two reference) can be passed into calc_error_2(),
 and finally, adapt can be called as before. In this way, error estimates in
 $H^1$ norm are calculated for elements in both spaces independently and the
@@ -1597,113 +1682,231 @@ The norm induced by this product,
 
     ||u||_e = \sqrt{(u,u)_e},
 
-is called the *energy norm*. 
-When measuring the error in the energy norm
+is called the *energy norm*. When measuring the error in the energy norm
 of the entire system, one can reduce the above-mentioned difficulties dramatically.
 When calculating the error on an element, the energy norm accounts
-also for the error caused by other solution components.
+also for the error caused by other solution components. 
 
-Let us consider again the equations of linear elasticity from example 08-system, but
-now we will view them as a coupled PDE system.
-Our domain is a bracket loaded on its top edge and fixed to a wall:
+It is also worth mentioning that the adaptivity algorithm does not make distinctions 
+between various meshes. The elements of *all meshes in the system* are put into one
+single array, sorted according to their estimated errors, and then the ones with the 
+largest error are refined. In other words, it may happen that all elements marked for refinement 
+will belong just to one mesh.
+
+
+Simplified Fitzhugh-Nagumo System
+---------------------------------
+
+**Git reference:** Tutorial example `11-adapt-system <http://hpfem.org/git/gitweb.cgi/hermes2d.git/tree/HEAD:/tutorial/11-adapt-system>`_. 
+
+We consider a simplified version of the Fitzhugh-Nagumo equation.
+This equation is a~prominent example of activator-inhibitor systems in two-component reaction-diffusion 
+equations, It describes a prototype of an excitable system (e.g., a neuron) and its stationary form 
+is
 
 .. math::
-    :nowrap:
 
-    \begin{eqnarray*}   \bfu \!&=&\! 0 \ \ \ \ \ \rm{on}\ \Gamma_1  \\   \dd{u_2}{n} \!&=&\! f \ \ \ \ \ \rm{on}\ \Gamma_2 \\   \dd{u_1}{n} = \dd{u_2}{n} \!&=&\! 0 \ \ \ \ \ \rm{elsewhere.} \end{eqnarray*}
+    -d^2_u \Delta u - f(u) + \sigma v = g_1,\\
+    -d^2_v \Delta v - u + v = g_2.
 
-The dimensions are L = 0.7 m, T = 0.1 m and the force $f = 10^3$ N.
+Here the unknowns $u, v$ are the voltage and $v$-gate, respectively, 
+The nonlinear function 
 
-.. image:: img/bracket.png
-   :align: center
-   :width: 400
-   :height: 400
-   :alt: Computational domain for the elastic bracket problem.
+.. math::
 
-The implementation (see the `main.cpp <http://hpfem.org/git/gitweb.cgi/hermes2d.git/blob/HEAD:/tutorial/11-adapt-system/main.cpp>`_ file in the tutorial example 11-adapt-system) is very similar to the micromotor
-example from the previous section. Again, the coarse and reference solutions are calculated
-in the main loop, only this time we have two equations in the system, two meshes, two spaces, etc.
-The only substantial difference is in the calculation of the error estimate. Instead of
-calc_error() we use the method calc_energy_error(), also a member of the
-class H1OrthoHP:
+    f(u) = \lambda u - u^3 - \kappa
+ 
+describes how an action potential travels through a nerve. Obviously this system is nonlinear.
+In order to make it simpler for this tutorial, we replace the function $f(u)$ with just $u$:
+
+.. math::
+
+    f(u) = u.
+
+The original nonlinear version is the subject of a separate benchmark example. 
+
+Our computational domain is the square $(-1,1)^2$ and we consider zero Dirichlet conditions 
+for both $u$ and $v$. In order to enable fair convergence comparisons, we will use the following 
+functions as the exact solution:
+
+.. math::
+
+    u(x,y) = \cos\left(\frac{\pi}{2}x\right) \cos\left(\frac{\pi}{2}y\right),\\
+    v(x,y) = \hat u(x) \hat u(y)
+
+where
+
+.. math::
+
+    \hat u(x) = 1 - \frac{e^{kx} + e^{-kx}}{e^k + e^{-k}}
+
+is the exact solution of the one-dimensional singularly perturbed 
+problem 
+
+.. math::
+
+    -u'' + k^2 u - k^2 = 0
+
+in $(-1,1)$, equipped with zero Dirichlet boundary conditions. The functions $u$ 
+and $v$ defined above evidently satisfy the given boundary conditions, and 
+they also satisfy the equation, since we inserted them into the PDE system 
+and calculated the source functions $g_1$ and $g_2$ from there. These functions 
+are not extremely pretty, but they are not too bad either:
+
 ::
 
-    H1OrthoHP hp(2, &xdisp, &ydisp);
+    // functions g_1 and g_2
+    double g_1(double x, double y) 
+    {
+      return (-cos(M_PI*x/2.)*cos(M_PI*y/2.) + SIGMA*(1. - (exp(K*x) + exp(-K*x))/(exp(K) + exp(-K))) 
+             * (1. - (exp(K*y) + exp(-K*y))/(exp(K) + exp(-K))) + pow(M_PI,2.)*pow(D_u,2.)*cos(M_PI*x/2.)
+             *cos(M_PI*y/2.)/2.);
+    }
+
+    double g_2(double x, double y) 
+    {
+      return ((1. - (exp(K*x) + exp(-K*x))/(exp(K) + exp(-K)))*(1. - (exp(K*y) + exp(-K*y))/(exp(K) + exp(-K))) 
+             - pow(D_v,2.)*(-(1 - (exp(K*x) + exp(-K*x))/(exp(K) + exp(-K)))*(pow(K,2.)*exp(K*y) + pow(K,2.)*exp(-K*y))/(exp(K) + exp(-K)) 
+             - (1. - (exp(K*y) + exp(-K*y))/(exp(K) + exp(-K)))*(pow(K,2.)*exp(K*x) + pow(K,2.)*exp(-K*x))/(exp(K) + exp(-K))) - 
+             cos(M_PI*x/2.)*cos(M_PI*y/2.));
+
+    }
+
+The weak forms can be found in the 
+file `forms.cpp <http://hpfem.org/git/gitweb.cgi/hermes2d.git/blob/HEAD:/tutorial/11-adapt-system/forms.cpp>`_ and 
+they are registered as follows:
+
+::
+
+    // initialize the weak formulation
+    WeakForm wf(2);
+    wf.add_biform(0, 0, callback(bilinear_form_0_0));  
+    wf.add_biform(0, 1, callback(bilinear_form_0_1));  
+    wf.add_biform(1, 0, callback(bilinear_form_1_0));
+    wf.add_biform(1, 1, callback(bilinear_form_1_1));
+    wf.add_liform(0, linear_form_0, linear_form_0_ord);
+    wf.add_liform(1, linear_form_1, linear_form_1_ord);
+
+Beware that despite each of the forms is actually symmetric, one cannot use the SYM flag as in the 
+elasticity equations, since it has a slightly different 
+meaning (see example `08-system <http://hpfem.org/hermes2d/doc/src/tutorial.html#systems-of-equations>`_).
+
+The exact error is for us the maximum of the relative errors of the two solution components:
+
+::
+
+    // calculate error wrt. exact solution
+    ExactSolution uexact(&umesh, u_exact);
+    ExactSolution vexact(&vmesh, v_exact);
+    double u_error = h1_error(&u_sln_coarse, &uexact) * 100;
+    double v_error = h1_error(&v_sln_coarse, &vexact) * 100;
+    double error = fmax(u_error, v_error);
+    info("Exact solution error for u (H1 norm): %g%%", u_error);
+    info("Exact solution error for v (H1 norm): %g%%", v_error);
+    info("Exact solution error (maximum): %g%%", error);
+
+The next code snippet shows how we define the energy norm for adaptive
+multimesh hp-FEM, whose necessity was explained in the previous 
+paragraph:
+
+::
+
+    // calculate element error estimates and the total error estimate
+    H1OrthoHP hp(2, &uspace, &vspace);
     hp.set_biform(0, 0, bilinear_form_0_0<scalar, scalar>, bilinear_form_0_0<Ord, Ord>);
     hp.set_biform(0, 1, bilinear_form_0_1<scalar, scalar>, bilinear_form_0_1<Ord, Ord>);
     hp.set_biform(1, 0, bilinear_form_1_0<scalar, scalar>, bilinear_form_1_0<Ord, Ord>);
     hp.set_biform(1, 1, bilinear_form_1_1<scalar, scalar>, bilinear_form_1_1<Ord, Ord>);
-    double err_est = hp.calc_error_2(&x_sln_coarse, &y_sln_coarse, &x_sln_fine, &y_sln_fine) * 100;
+    double err_est = hp.calc_error_2(&u_sln_coarse, &v_sln_coarse, &u_sln_fine, &v_sln_fine) * 100;
+    info("Estimate of error wrt. ref. solution (energy norm): %g%%", err_est);
 
-The following figures show the two meshes and their polynomial
-degrees after several adaptive steps: 
+The following two figures show the solutions $u$ and $v$. Notice their 
+large qualitative differences: While $u$ is smooth in the entire domain, 
+$v$ has a thin boundary layer along the boundary:
 
-.. image:: img/sys-xorders.png
-   :align: left
-   :width: 300
-   :height: 300
-   :alt: $x$ displacement -- mesh and polynomial degrees.
+.. image:: img/example-11/solution_u.png
+   :align: center
+   :width: 465
+   :height: 400
+   :alt: Solution
 
-.. image:: img/sys-yorders.png
-   :align: right
-   :width: 300
-   :height: 300
-   :alt: $y$ displacement -- mesh and polynomial degrees.
+.. image:: img/example-11/solution_v.png
+   :align: center
+   :width: 465
+   :height: 400
+   :alt: Solution
 
-.. raw:: html
+Resulting mesh for $u$ and $v$ obtained using conventional (single-mesh) hp-FEM: 12026 DOF
+(6013 for each solution). 
 
-   <hr style="clear: both; visibility: hidden;">
+.. image:: img/example-11/mesh_single.png
+   :align: center
+   :width: 465
+   :height: 400
+   :alt: Mesh
 
+Resulting mesh for $u$ obtained using the multimesh hp-FEM: 169 DOF
 
-Note that the meshes are slightly different, not only in
-polynomial degrees, but also in element refinements. This is possible in Hermes thanks to
-a technique called multi-mesh assembling which allows
-all components of the solution to adapt independently. In problems whose components exhibit
-substantially different behavior, one may even obtain completely different meshes.
+.. image:: img/example-11/mesh_multi_u.png
+   :align: center
+   :width: 465
+   :height: 400
+   :alt: Mesh
 
-Convergence graphs of adaptive h-FEM with linear elements, h-FEM with quadratic elements
-and hp-FEM are shown below.
+Resulting mesh for $v$ obtained using the multimesh hp-FEM: 3565 DOF
+
+.. image:: img/example-11/mesh_multi_v.png
+   :align: center
+   :width: 465
+   :height: 400
+   :alt: Mesh
+
+DOF convergence graphs:
 
 .. image:: img/example-11/conv_dof.png
    :align: center
    :width: 600
    :height: 400
-   :alt: DOF convergence graph for tutorial example 11-adapt-system.
+   :alt: DOF convergence graph.
 
-The following graph shows convergence in terms of CPU time. 
+CPU time convergence graphs:
 
 .. image:: img/example-11/conv_cpu.png
    :align: center
    :width: 600
    :height: 400
-   :alt: CPU convergence graph for tutorial example 11-adapt-system.
-
-See example `multimesh <http://hpfem.org/git/gitweb.cgi/hermes2d.git/tree/HEAD:/examples/multimesh>`_ for a more 
-advanced application of multimesh *hp*-FEM to thermoelasticity.
+   :alt: CPU convergence graph.
 
 Adaptivity for General 2nd-Order Linear Equation
 ------------------------------------------------
 
-This example does not bring anything new and its purpose is solely to save you work adding adaptivity to example `07-general <http://hpfem.org/git/gitweb.cgi/hermes2d.git/tree/HEAD:/tutorial/07-general>`_. Feel free to adjust the `main.cpp <http://hpfem.org/git/gitweb.cgi/hermes2d.git/blob/HEAD:/tutorial/12-adapt-general/main.cpp>`_ file in the tutorial example 12-general-adapt for your own applications.
+**Git reference:** Tutorial example `12-adapt-general <http://hpfem.org/git/gitweb.cgi/hermes2d.git/tree/HEAD:/tutorial/12-adapt-general>`_. 
 
-The solution is shown below:
+This example does not bring anything substantially new and its purpose is solely to 
+save you work adding adaptivity to the tutorial example 
+`07-general <http://hpfem.org/git/gitweb.cgi/hermes2d.git/tree/HEAD:/tutorial/07-general>`_. 
+Feel free to adjust the 
+`main.cpp <http://hpfem.org/git/gitweb.cgi/hermes2d.git/blob/HEAD:/tutorial/12-adapt-general/main.cpp>`_ 
+file for your own applications.
 
-.. image:: img/12-solution.png
+Solution:
+
+.. image:: img/example-12/12-solution.png
    :align: center
    :width: 465
    :height: 400
    :alt: Solution to the general 2nd-order linear equation example.
 
-The final hp-mesh looks as follows:
+Final hp-mesh:
 
-.. image:: img/12-mesh.png
+.. image:: img/example-12/12-mesh.png
    :align: center
    :width: 450
    :height: 400
    :alt: Final finite element mesh for the general 2nd-order linear equation example.
 
 Convergence graphs of adaptive h-FEM with linear elements, h-FEM with quadratic elements
-and hp-FEM are shown below.
+and hp-FEM.
 
 .. image:: img/example-12/conv_dof.png
    :align: center
@@ -1711,7 +1914,7 @@ and hp-FEM are shown below.
    :height: 400
    :alt: DOF convergence graph for tutorial example 12-adapt-general.
 
-The following graph shows convergence in terms of CPU time. 
+Convergence comparison in terms of CPU time. 
 
 .. image:: img/example-12/conv_cpu.png
    :align: center
@@ -1719,3 +1922,1287 @@ The following graph shows convergence in terms of CPU time.
    :height: 400
    :alt: CPU convergence graph for tutorial example 12-adapt-general.
 
+======================================
+Tutorial Part III (Nonlinear Problems)
+======================================
+
+The next part of the tutorial assumes that the reader is familiar with basic concepts 
+covered in the first part. We will discuss the Newton's method for nonlinear PDE and 
+PDE systems, for both stationary and time-dependent models. At the end of this chapter,
+the reader will be able to solve time-dependent nonlinear problems adaptively using
+dynamical meshes. 
+
+The Newton's Method
+-------------------
+
+Hermes can solve nonlinear problems via the Newton's method, both single nonlinear
+PDE and nonlinear PDE systems. We begin with explaining how the Newton's method works, and 
+concrete implementation details will be shown after that. 
+Consider a simple model problem of the form 
+
+.. math::
+    :label: newton0
+
+    -\nabla \cdot (\lambda(u)\nabla u) - f(\bfx) = 0, \ \ \ u = 0 \ \mbox{on}\ \partial \Omega.
+
+Note that when using the Newton's method, it is customary to have 
+everything on the left-hand side. The corresponding discrete problem has the form 
+
+.. math::
+
+    \int_{\Omega} \lambda(u)\nabla u(\bfx) \cdot \nabla v_i(\bfx)\, \mbox{d}\bfx 
+    - \int_{\Omega} f(\bfx)v_i(\bfx) \, \mbox{d}\bfx\ \ \ \mbox{for all} \ i = 1, 2, \ldots, N, 
+
+where $v_i$ are the standard test functions and
+
+.. math::
+
+    u(\bfY) = \sum_{j=1}^N y_j v_j.
+
+Here $\bfY = (y_1, y_2, \ldots, y_N)^T$ is the vector of unknown coefficients.
+The nonlinear discrete problem can be written in the compact form
+
+.. math::
+
+    \bfF(\bfY) = {\bf 0},
+ 
+where $\bfF = (F_1, F_2, \ldots, F_N)^T$ is the residual vector defined by
+
+.. math::
+
+    F_i(\bfY) =  \int_{\Omega} \lambda(u)\nabla u \cdot \nabla v_i 
+    - f v_i \, \mbox{d}\bfx.
+
+The Jacobi matrix $\bfJ(\bfY) = D\bfF/D\bfY$ has the same sparsity structure as the 
+standard stiffness matrix that we know from linear problems. In fact, when the 
+problem is linear then the Jacobi matrix and the stiffness matrix are the same 
+thing. Using the chain rule of differentiation, we calculate that on the 
+position $ij$, the Jacobi matrix has the value
+
+.. math::
+
+    J_{ij}(\bfY) =  \frac{\partial F_i}{\partial y_j} = 
+    \int_{\Omega} \left[ \frac{\partial \lambda}{\partial u} \frac{\partial u}{\partial y_j} 
+    \nabla u + \lambda(u)\frac{\partial \nabla u}{\partial y_j} \right] \cdot \nabla v_i \, \mbox{d}\bfx.
+
+To this end, note that 
+
+.. math::
+
+    \frac{\partial u}{\partial y_k} = \frac{\partial}{\partial y_k}\sum_{j=1}^N y_j v_j = v_k
+
+and 
+
+.. math::
+
+    \frac{\partial \nabla u}{\partial y_k} = \frac{\partial}{\partial y_k}\sum_{j=1}^N y_j \nabla v_j = \nabla v_k.
+
+
+Using these relations, we obtain
+
+.. math::
+
+    J_{ij}(\bfY) =
+    \int_{\Omega} \left[ \frac{\partial \lambda}{\partial u}(u) v_j 
+    \nabla u + \lambda(u)\nabla v_j \right] \cdot \nabla v_i \, \mbox{d}\bfx.
+
+Let's assume that the Jacobi matrix has been assembled. 
+The Newton's method is written formally as 
+
+.. math::
+
+    \bfY_{\!\!n+1} = \bfY_{\!\!n} - \bfJ^{-1}(\bfY_{\!\!n}) \bfF(\bfY_{\!\!n}),
+
+but a more practical formula to work with is 
+
+.. math::
+
+    \bfJ(\bfY_{\!\!n})\delta \bfY_{\!\!n+1} =  - \bfF(\bfY_{\!\!n}).
+
+This is a system of linear algebraic equations that needs to be solved in every Newton's 
+iteration. The Newton's method will stop when $\bfF(\bfY_{\!\!n+1})$ is sufficiently close 
+to the zero vector.
+
+A remark on the linear case
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In the linear case we have 
+
+.. math::
+
+    \bfF(\bfY) = \bfJ(\bfY)\bfY - \bfb,
+
+where $\bfS = \bfJ(\bfY)$ is a constant stiffness matrix and $\bfb$ a load vector. 
+The Newton's method is now
+
+.. math::
+
+    \bfS\bfY_{\!\!n+1} = \bfJ(\bfY_{\!\!n})\bfY_{\!\!n} 
+    - \bfJ(\bfY_{\!\!n})\bfY_{\!\!n} + \bfb = \bfb.
+
+Therefore, the Newton's method will converge in one iteration.
+
+
+Constant Initial Guess
+----------------------
+
+**Git reference:** Tutorial example `13-newton-elliptic-1 
+<http://hpfem.org/git/gitweb.cgi/hermes2d.git/tree/HEAD:/tutorial/13-newton-elliptic-1>`_.
+
+We will solve the nonlinear model problem defined in the previous section,
+
+.. math::
+
+    -\nabla \cdot (\lambda(u)\nabla u) - f(x,y) = 0, \ \ \ u = 0 \ \mbox{on}\ \partial \Omega.
+
+One possible interpretation of this equation is stationary heat transfer where the thermal
+conductivity $\lambda$ depends on the temperature $u$.
+Our domain is a square $\Omega = (-10,10)^2$, $f(x,y) = 1$, and the nonlinearity $\lambda$ has the form 
+
+.. math::
+
+    \lambda(u) = 1 + u^\alpha.
+
+Recall that $\lambda$ must be entirely positive or entirely negative for the problem to be solvable, so it is safe 
+to restrict $\alpha$ to be an even nonnegative integer. Recall from the previous section that 
+
+.. math::
+
+    F_i(\bfY) =  \int_{\Omega} \lambda(u)\nabla u \cdot \nabla v_i 
+    - f v_i \, \mbox{d}x\mbox{d}y.
+
+and
+
+.. math::
+
+    J_{ij}(\bfY) =
+    \int_{\Omega} \left[ \frac{\partial \lambda}{\partial u}(u) v_j 
+    \nabla u + \lambda(u)\nabla v_j \right] \cdot \nabla v_i \, \mbox{d}x\mbox{d}y.
+
+In the code, this becomes
+
+::
+
+    // Heat sources (can be a general function of 'x' and 'y')
+    template<typename Real>
+    Real heat_src(Real x, Real y)
+    {
+      return 1.0;
+    }
+
+    // Jacobian matrix
+    template<typename Real, typename Scalar>
+    Scalar jac(int n, double *wt, Func<Real> *u, Func<Real> *v, Geom<Real> *e, ExtData<Scalar> *ext)
+    {
+      Scalar result = 0;
+      Func<Scalar>* u_prev = ext->fn[0];
+      for (int i = 0; i < n; i++)
+        result += wt[i] * (dlam_du(u_prev->val[i]) * u->val[i] * (u_prev->dx[i] * v->dx[i] + u_prev->dy[i] * v->dy[i])
+                           + lam(u_prev->val[i]) * (u->dx[i] * v->dx[i] + u->dy[i] * v->dy[i]));
+                       
+      return result;
+    }
+
+    // Fesidual vector
+    template<typename Real, typename Scalar>
+    Scalar res(int n, double *wt, Func<Real> *v, Geom<Real> *e, ExtData<Scalar> *ext)
+    {
+      Scalar result = 0;
+      Func<Scalar>* u_prev = ext->fn[0];
+      for (int i = 0; i < n; i++)
+        result += wt[i] * (lam(u_prev->val[i]) * (u_prev->dx[i] * v->dx[i] + u_prev->dy[i] * v->dy[i])
+	    	           - heat_src(e->x[i], e->y[i]) * v->val[i]);
+      return result;
+    }
+
+Notice that the basis function $v_j$ and the test function 
+$v_i$ are entering the weak forms via the parameters u and v, respectively (same as for linear problems). 
+The user does not have to 
+take care about their indices $i$ and $j$, this is handled by Hermes outside the weak forms. 
+
+The code snippet above also shows how values and derivatives of the solution $u$ can be accessed via 
+the ExtData structure, and the coordinates of the integration points via the Geom structure. 
+The contents of ExtData is user-defined and the Geom structure contains geometrical information 
+including the unit normal and tangential vectors to the boundary at the integration points 
+(also for curved boundaries). See the file 
+`src/forms.h <http://hpfem.org/git/gitweb.cgi/hermes2d.git/blob/HEAD:/src/forms.h>`_ for more details. 
+
+The weak forms are registered as usual, except that the previous solution u_prev has to be declared in advance:
+
+::
+
+    // previous solution for the Newton's iteration
+    Solution u_prev;
+
+    // initialize the weak formulation
+    WeakForm wf(1);
+    wf.add_biform(0, 0, callback(jac), UNSYM, ANY, 1, &u_prev);
+    wf.add_liform(0, callback(res), ANY, 1, &u_prev);
+
+The nonlinear system needs to be initialized:
+
+::
+
+    // initialize the nonlinear system and solver
+    UmfpackSolver umfpack;
+    NonlinSystem nls(&wf, &umfpack);
+    nls.set_spaces(1, &space);
+    nls.set_pss(1, &pss);
+
+In this example, we set the initial guess for the Newton's iteration to be 
+a constant function:
+
+::
+
+    // use a constant function as the initial guess
+    u_prev.set_const(&mesh, 3.0);
+    nls.set_ic(&u_prev, &u_prev, PROJ_TYPE);
+
+The function set_ic() takes an initial guess (the first argument),
+projects it on the finite element mesh, and stores the result in the 
+second argument. 
+The projection norm PROJ_TYPE needs to be compatible with the Sobolev
+space where the solution is sought ($H^1$ in this example). 
+Hermes currently provides $H^1$-projection (PROJ_TYPE = 1) and 
+$L^2$-projection (PROJ_TYPE = 0). Other projections (H(curl), H(div) etc.)
+will be added later when a need arises. 
+
+A more advanced example showing how to define a general initial guess 
+and how to deal with nonzero Dirichlet boundary conditions will follow. 
+The Newton's loop is very simple,
+
+::
+
+    // Newton's loop
+    nls.solve_newton_1(&u_prev, NEWTON_TOL, NEWTON_MAX_ITER);
+
+Note that up to three Filters can be passed to the function 
+as optional parameters at the end. This function can be found in 
+`src/nonlinsystem.h <http://hpfem.org/git/gitweb.cgi/hermes2d.git/blob/HEAD:/src/nonlinsystem.h>`_.
+
+Approximate solution $u$ for $\alpha = 2$: 
+
+.. image:: img/example-13/newton-ellipt-1-2.png
+   :align: center
+   :width: 600
+   :height: 400
+   :alt: result for alpha = 2
+
+Approximate solution $u$ for $\alpha = 4$: 
+
+.. image:: img/example-13/newton-ellipt-1-4.png
+   :align: center
+   :width: 600
+   :height: 400
+   :alt: result for alpha = 4
+
+General Initial Guess
+---------------------
+
+**Git reference:** Tutorial example `14-newton-elliptic-2 
+<http://hpfem.org/git/gitweb.cgi/hermes2d.git/tree/HEAD:/tutorial/14-newton-elliptic-2>`_.
+
+We will solve the nonlinear model problem from the previous section again,
+
+.. math::
+
+    -\nabla \cdot (\lambda(u)\nabla u) - f(x,y) = 0 \ \ \ \mbox{in } \Omega = (-10,10)^2
+
+but now with nonhomogeneous Dirichlet boundary conditions 
+
+.. math::
+
+    u(x, y) = (x+10)(y+10)/100 \ \ \ \mbox{on } \partial \Omega
+
+and with a general initial guess init_guess(x,y).
+
+The treatment of the Dirichlet boundary conditions in the code looks as follows:
+
+::
+
+    // This function is used to define Dirichlet boundary conditions
+    double dir_lift(double x, double y, double& dx, double& dy) {
+      dx = (y+10)/10.;
+      dy = (x+10)/10.;
+      return (x+10)*(y+10)/100.;
+    }
+
+    // Boundary condition type (essential = Dirichlet)
+    int bc_types(int marker)
+    {
+      return BC_ESSENTIAL;
+    }
+
+    // Dirichlet boundary condition values
+    scalar bc_values(int marker, double x, double y)
+    {
+      double dx, dy;
+      return dir_lift(x, y, dx, dy); 
+    }
+
+The initial guess for the Newton's method will be chosen to be the 
+Dirichlet lift function elevated by 2:
+
+::
+
+    // This function will be projected on the initial mesh and 
+    // used as initial guess for the Newton's method
+    scalar init_guess(double x, double y, double& dx, double& dy)
+    {
+      // using the Dirichlet lift elevated by two
+      double val = dir_lift(x, y, dx, dy) + 2;
+    }
+
+The initial guess is projected to the initial mesh using the set_ic()
+method of the Nonlinsystem class:
+
+::
+
+    // project the function init_guess() on the mesh 
+    // to obtain initial guess u_prev for the Newton's method
+    nls.set_ic(init_guess, &mesh, &u_prev, PROJ_TYPE);
+
+This function creates an orthogonal projection of the initial guess
+on the mesh "mesh" and stores the result in u_prev. 
+The following figure shows the  
+$H^1$-projection of the above-defined initial guess init_guess():
+
+.. image:: img/example-14/proj-h1.png
+   :align: center
+   :width: 600
+   :height: 350
+   :alt: H1 projection
+
+The Newton's iteration is performed again using
+
+::
+
+    // Newton's loop
+    nls.solve_newton_1(&u_prev, NEWTON_TOL, NEWTON_MAX_ITER);
+
+
+The converged solution after 7 steps of the Newton's
+method looks as follows:
+
+.. image:: img/example-14/solution.png
+   :align: center
+   :width: 600
+   :height: 350
+   :alt: approximate solution
+
+Newton's Method and Adaptivity
+------------------------------
+
+**Git reference:** Tutorial example `15-newton-elliptic-adapt 
+<http://hpfem.org/git/gitweb.cgi/hermes2d.git/tree/HEAD:/tutorial/15-newton-elliptic-adapt>`_.
+
+We will keep the simple model problem
+
+.. math::
+
+    -\nabla \cdot (\lambda(u)\nabla u) - f(x,y) = 0 \ \ \ \mbox{in } \Omega = (-10,10)^2,
+
+equipped with nonhomogeneous Dirichlet boundary conditions 
+
+.. math::
+
+    u(x, y) = (x+10)(y+10)/100 \ \ \ \mbox{on } \partial \Omega,
+
+but this time it will be solved using automatic adaptivity. As usual in Hermes, adaptivity
+will be guided by the difference between a coarse and fine mesh approximations. At the beginning,
+the initial condition is projected on the coarse mesh:
+
+::
+
+    // project the function init_guess() on the coarse mesh 
+    // to obtain initial guess u_prev for the Newton's method
+    nls.set_ic(init_guess, &mesh, &u_prev, PROJ_TYPE);
+
+Then we solve the nonlinear problem on the coarse mesh and store
+the coarse mesh solution:
+
+::
+
+    // Newton's loop on the coarse mesh
+    info("---- Solving on coarse mesh:\n");
+    if (!nls.solve_newton_1(&u_prev, NEWTON_TOL_COARSE, NEWTON_MAX_ITER)) error("Newton's method did not converge.");
+
+    // store the result in sln_coarse
+    sln_coarse.copy(&u_prev);
+
+Next the nonlinear problem on the fine mesh is initialized as follows:
+
+::
+
+    // Setting initial guess for the Newton's method on the fine mesh
+    RefNonlinSystem rnls(&nls);
+    rnls.prepare();
+    if (a_step == 1) rnls.set_ic(&sln_coarse, &u_prev, PROJ_TYPE);
+    else rnls.set_ic(&sln_fine, &u_prev, PROJ_TYPE);    
+
+Notice that we only use sln_coarse as the initial guess on the fine mesh 
+in the first adaptivity step when we do not have any fine mesh solution yet,
+otherwise a projection of the last fine mesh solution is used. Then we perform the 
+Newton's loop on the fine mesh and store the result in sln_fine:
+
+::
+
+    // Newton's loop on the fine mesh
+    if (!rnls.solve_newton_1(&u_prev, NEWTON_TOL_FINE, NEWTON_MAX_ITER)) error("Newton's method did not converge.");
+
+    // stote the fine mesh solution in sln_fine
+    sln_fine.copy(&u_prev);
+
+Now we have the desired solution pair, and the error estimate is calculated as usual:
+
+::
+
+    // calculate element errors and total error estimate
+    H1OrthoHP hp(1, &space);
+    err_est = hp.calc_error(&sln_coarse, &sln_fine) * 100;
+    if (verbose) info("Error estimate: %g%%", err_est);
+
+After adapting the mesh, we must not forget to update the coarse mesh solution. 
+This can be done either by just projecting the fine mesh solution onto 
+the new coarse mesh, or by solving in addition to that the nonlinear
+problem on the new coarse mesh:
+
+::
+
+    // if err_est too large, adapt the mesh
+    if (err_est < ERR_STOP) done = true;
+    else {
+      hp.adapt(THRESHOLD, STRATEGY, ADAPT_TYPE, ISO_ONLY, MESH_REGULARITY);
+      int ndof = space.assign_dofs();
+      if (ndof >= NDOF_STOP) done = true;
+
+      // project the fine mesh solution on the new coarse mesh
+      info("---- Projecting fine mesh solution on new coarse mesh:\n");
+      nls.set_ic(&sln_fine, &u_prev, PROJ_TYPE);
+
+      if (NEWTON_ON_COARSE_MESH) {
+        // Newton's loop on the coarse mesh
+        info("---- Solving on coarse mesh:\n");
+        if (!nls.solve_newton_1(&u_prev, NEWTON_TOL_COARSE, NEWTON_MAX_ITER)) error("Newton's method did not converge.");
+      }
+
+      // store the result in sln_coarse
+      sln_coarse.copy(&u_prev);
+    }
+
+The parameter NEWTON_ON_COARSE_MESH is provided to allow the user to do his 
+own experiments, but the default value is NEWTON_ON_COARSE_MESH = false.
+In our experience, the Newton's loop on the coarse mesh can be skipped
+in most cases since it does not affect the convergence and one saves some
+CPU time. This is illustrated in the following two convergence comparisons:
+
+Convergence in the number of DOF (with and without Newton solve on coarse mesh):
+
+.. image:: img/example-15/conv_dof_compar.png
+   :align: center
+   :width: 600
+   :height: 400
+   :alt: DOF convergence graph for tutorial example 15.
+
+Convergence in CPU time (with and without Newton solve on coarse mesh):
+
+.. image:: img/example-15/conv_cpu_compar.png
+   :align: center
+   :width: 600
+   :height: 400
+   :alt: CPU convergence graph for tutorial example 15.
+
+In the following we show the resulting meshes (corresponding to 
+NEWTON_ON_COARSE_MESH = false). The solution itself is not 
+shown since the reader knows it from the previous example.
+
+Resulting coarse mesh.
+
+.. image:: img/example-15/mesh_coarse.png
+   :align: center
+   :width: 500
+   :height: 400
+   :alt: coarse mesh
+
+Resulting fine mesh.
+
+.. image:: img/example-15/mesh_fine.png
+   :align: center
+   :width: 500
+   :height: 400
+   :alt: fine mesh
+
+Nonlinear Parabolic Problem
+---------------------------
+
+**Git reference:** Tutorial example `16-newton-timedep-heat 
+<http://hpfem.org/git/gitweb.cgi/hermes2d.git/tree/HEAD:/tutorial/16-newton-timedep-heat>`_.
+
+We will employ the Newton's method to solve a nonlinear parabolic PDE discretized 
+in time by means of the implicit Euler method. To keep things simple, our model problem is 
+a time-dependent version of the nonlinear equation used in the previous three sections,
+
+.. math::
+
+    \frac{\partial u}{\partial t} -\nabla \cdot (\lambda(u)\nabla u) - f(x,y) = 0.
+
+Again we prescribe nonhomogeneous Dirichlet boundary conditions 
+
+.. math::
+
+    u(x, y) = (x+10)(y+10)/100 \ \ \ \mbox{on } \partial \Omega,
+
+and the same function is used to define the initial condition. The 
+problem will be solved in the square $\Omega = (-10,10)^2$ and time interval $(0, T)$.
+
+The weak formulation of the time-discretized problem reads
+
+.. math::
+
+    \int_{\Omega} \frac{u^{n+1} - u^n}{\tau}v + \lambda(u^{n+1})\nabla u^{n+1}\cdot \nabla v - fv\, \mbox{d}x\mbox{d}y = 0,
+
+where the indices $n$ and $n+1$ indicate the previous and new time level, respectively. Hence in each 
+time step we need to solve a *time-independent* nonlinear problem, and this is something we learned 
+in the previous sections. The weak forms for the Newton's method from the previous sections only 
+need to be enhanced with a simple term containing the time step $\tau$ (called TAU):
+
+::
+
+    // Jacobian matrix
+    template<typename Real, typename Scalar>
+    Scalar jac(int n, double *wt, Func<Real> *u, Func<Real> *v, Geom<Real> *e, ExtData<Scalar> *ext)
+    {
+      Scalar result = 0;
+      Func<Scalar>* u_prev_newton = ext->fn[0];
+      for (int i = 0; i < n; i++)
+        result += wt[i] * (u->val[i] * v->val[i] / TAU + dlam_du(u_prev_newton->val[i]) * u->val[i] * 
+                           (u_prev_newton->dx[i] * v->dx[i] + u_prev_newton->dy[i] * v->dy[i])
+                           + lam(u_prev_newton->val[i]) * (u->dx[i] * v->dx[i] + u->dy[i] * v->dy[i]));                    
+      return result;
+    }
+
+Here the function u_prev_newton plays the role of u_prev from the previous sections - this is the 
+previous solution inside the Newton's iteration. Note that the previous time level solution 
+$u^n$ that we call u_prev_time is not used in the Jacobian. It is used in the residual only:
+
+::
+
+    // Fesidual vector
+    template<typename Real, typename Scalar>
+    Scalar res(int n, double *wt, Func<Real> *v, Geom<Real> *e, ExtData<Scalar> *ext)
+    {
+      Scalar result = 0;
+      Func<Scalar>* u_prev_newton = ext->fn[0];
+      Func<Scalar>* u_prev_time = ext->fn[1];
+      for (int i = 0; i < n; i++)
+        result += wt[i] * ((u_prev_newton->val[i] - u_prev_time->val[i]) * v->val[i] / TAU +
+                          lam(u_prev_newton->val[i]) * (u_prev_newton->dx[i] * v->dx[i] + u_prev_newton->dy[i] * v->dy[i])
+		           - heat_src(e->x[i], e->y[i]) * v->val[i]);
+      return result;
+    }
+
+Notice that the function u_prev_newton evolves during the Newton's iteration
+but the previous time level solution u_prev_time only is updated after the time step
+is finished. The weak forms and the previous solutions are registered as usual:
+
+::
+
+    // initialize the weak formulation
+    WeakForm wf(1);
+    wf.add_biform(0, 0, callback(jac), UNSYM, ANY, 1, &u_prev_newton);
+    wf.add_liform(0, callback(res), ANY, 2, &u_prev_newton, &u_prev_time);
+
+The entire time-stepping loop looks as follows:
+
+::
+
+    // time stepping loop
+    double current_time = 0.0;
+    int t_step = 1;
+    do {
+      info("\n**** Time step %d, t = %g s:\n", t_step++, current_time);
+
+      // Newton's method
+      nls.solve_newton_1(&u_prev_newton, NEWTON_TOL, NEWTON_MAX_ITER);
+
+      // update previous time level solution
+      u_prev_time.copy(&u_prev_newton);
+
+      // update time
+      current_time += TAU;
+
+    } while (current_time < T_FINAL);
+
+The stationary solution is not shown since we already saw it in the previous sections.
+
+
+Flame Propagation Problem
+-------------------------
+
+**Git reference:** Tutorial example `17-newton-timedep-flame 
+<http://hpfem.org/git/gitweb.cgi/hermes2d.git/tree/HEAD:/tutorial/17-newton-timedep-flame>`_.
+
+We will employ the Newton's method to solve a nonlinear system of two parabolic equations 
+describing a very simple flame propagation model (laminar flame, no fluid mechanics involved).
+The computational domain shown below contains in the middle a narrow portion (cooling rods) 
+whose purpose is to slow down the chemical reaction:
+
+.. image:: img/example-17/domain.png
+   :align: center
+   :width: 760
+   :alt: computational domain
+
+The equations for the temperature $T$ and species concentration $Y$ have the form
+
+.. math::
+
+    \frac{\partial T}{\partial t} - \Delta T = \omega(T, Y),\\
+    \frac{\partial Y}{\partial t} - \frac{1}{Le}\Delta Y = -\omega(T, Y).
+
+Boundary conditions are Dirichlet $T = 1$ and $Y = 0$ on the inlet, 
+Newton $\partial T/\partial n = - \kappa T$ on the cooling rods, 
+and Neumann $\partial T/\partial n = 0$, $\partial Y/\partial n = 0$ elsewhere.
+The objective of the computation is to obtain the *reaction rate* defined
+by the Arrhenius law,
+
+.. math::
+
+    \omega(T, Y) = \frac{\beta^2}{2{\rm Le}} Y e^{\frac{\beta(T - 1)}{1 + \alpha(T-1)}}.
+
+Here $\alpha$ is the gas expansion coefficient in a flow with nonconstant density,
+$\beta$ the non-dimensional activation energy, and  
+$\rm Le$ the Lewis number (ratio of diffusivity of heat and diffusivity 
+of mass). Both $\theta$, $0 \le \theta \le 1$ and 
+$Y$, $0 \le Y \le 1$ are dimensionless and so is the time $t$. 
+
+Time integration is performed using a second-order implicit BDF formula
+
+.. math::
+
+    T^{n+1} = -\frac{1}{2} T_1^{n+1} + \frac{3}{2} T_2^{n+1},\\
+    Y^{n+1} = -\frac{1}{2} Y_1^{n+1} + \frac{3}{2} Y_2^{n+1},
+
+that is obtained using a combination of the following two first-order methods:
+
+.. math::
+
+    \frac{T_1^{n+1} - T^{n}}{\tau} = \Delta T_1^{n+1} + \omega(T_1^{n+1}, Y_1^{n+1}),\\
+    \frac{Y_1^{n+1} - Y^{n}}{\tau} = \frac{1}{\rm Le} \ \Delta Y_1^{n+1} - \omega(\theta_1^{n+1}, Y_1^{n+1}),
+
+and 
+
+.. math::
+
+    \frac{T_2^{n+1} - T^{n}}{\tau} = \frac{2}{3}\left(\Delta T_2^{n+1} + \omega(T_2^{n+1}, Y_2^{n+1})\right) +                                            \frac{1}{3}\left(\Delta T_2^{n} + \omega(T_2^{n}, Y_2^{n})\right),\\
+    \frac{Y_2^{n+1} - Y^{n}}{\tau} = \frac{2}{3}\left(\frac{1}{\rm Le}\ \Delta Y_2^{n+1} - \omega(T_2^{n+1}, Y_2^{n+1})\right) +
+                                        \frac{1}{3}\left(\frac{1}{\rm Le}\ \Delta Y_2^{n} - \omega(T_2^{n}, Y_2^{n})\right).
+   
+Problem parameters are chosen as
+
+::
+
+    // Problem constants
+    const double Le    = 1.0;
+    const double alpha = 0.8;
+    const double beta  = 10.0;
+    const double kappa = 0.1;
+    const double x1 = 9.0;
+
+It is worth mentioning that the initial conditions for $T$ and $Y$,
+
+::
+
+    // Initial conditions
+    scalar temp_ic(double x, double y, scalar& dx, scalar& dy)
+      { return (x <= x1) ? 1.0 : exp(x1 - x); }
+
+    scalar conc_ic(double x, double y, scalar& dx, scalar& dy)
+      { return (x <= x1) ? 0.0 : 1.0 - exp(Le*(x1 - x)); }
+
+are defined as exact functions
+
+::
+
+    // setting initial conditions
+    t_prev_time_1.set_exact(&mesh, temp_ic); y_prev_time_1.set_exact(&mesh, conc_ic);
+    t_prev_time_2.set_exact(&mesh, temp_ic); y_prev_time_2.set_exact(&mesh, conc_ic);
+    t_prev_newton.set_exact(&mesh, temp_ic);  y_prev_newton.set_exact(&mesh, conc_ic);
+
+Here the pairs of solutions (t_prev_time_1, y_prev_time_1) and (t_prev_time_2, y_prev_time_2)
+correspond to the two first-order time-stepping methods described above. and 
+(t_prev_newton, y_prev_newton) are used to store the previous step approximation
+in the Newton's method. The reaction rate $\omega$ and its derivatives are handled
+via filters,
+
+::
+
+    // defining filters for the reaction rate omega
+    DXDYFilter omega(omega_fn, &t_prev_newton, &y_prev_newton);
+    DXDYFilter omega_dt(omega_dt_fn, &t_prev_newton, &y_prev_newton);
+    DXDYFilter omega_dy(omega_dy_fn, &t_prev_newton, &y_prev_newton);
+
+Details on the functions omega_fn, omega_dt_fn, omega_dy_fn and the weak 
+forms can be found in the file `forms.cpp 
+<http://hpfem.org/git/gitweb.cgi/hermes2d.git/blob/HEAD:/tutorial/17-newton-timedep-flame/forms.cpp>`_
+Here is how we register the weak forms,
+
+::
+
+    // initialize the weak formulation
+    WeakForm wf(2);
+    wf.add_biform(0, 0, callback(newton_bilinear_form_0_0), UNSYM, ANY, 1, &omega_dt);
+    wf.add_biform_surf(0, 0, callback(newton_bilinear_form_0_0_surf), 3);
+    wf.add_biform(0, 1, callback(newton_bilinear_form_0_1), UNSYM, ANY, 1, &omega_dy);
+    wf.add_biform(1, 0, callback(newton_bilinear_form_1_0), UNSYM, ANY, 1, &omega_dt);
+    wf.add_biform(1, 1, callback(newton_bilinear_form_1_1), UNSYM, ANY, 1, &omega_dy);
+    wf.add_liform(0, callback(newton_linear_form_0), ANY, 4, &t_prev_newton, &t_prev_time_1, &t_prev_time_2, &omega);
+    wf.add_liform_surf(0, callback(newton_linear_form_0_surf), 3, 1, &t_prev_newton);
+    wf.add_liform(1, callback(newton_linear_form_1), ANY, 4, &y_prev_newton, &y_prev_time_1, &y_prev_time_2, &omega);
+
+and how we initialize the nonlinear system and solver:
+
+::
+
+  // initialize the nonlinear system and solver
+  UmfpackSolver umfpack;
+  NonlinSystem nls(&wf, &umfpack);
+  nls.set_spaces(2, &tspace, &cspace);
+  nls.set_pss(1, &pss);
+  nls.set_ic(&t_prev_time_1, &y_prev_time_1, &t_prev_newton, &y_prev_newton, PROJ_TYPE);
+
+The time stepping loop looks as follows, notice the visualization of $\omega$
+through a DXDYFilter:
+
+::
+
+    // time stepping loop
+    double current_time = 0.0;
+    int t_step = 0;
+    do {
+      info("\n**** Time step %d, t = %g s:\n", ++t_step, current_time);
+
+      // Newton's method
+      nls.solve_newton_2(&t_prev_newton, &y_prev_newton, NEWTON_TOL, NEWTON_MAX_ITER, 
+                         &omega, &omega_dt, &omega_dy);
+
+      // visualization
+      DXDYFilter omega_view(omega_fn, &t_prev_newton, &y_prev_newton);
+      rview.set_min_max_range(0.0,2.0);
+      char title[100];
+      sprintf(title, "Reaction rate, t = %g", current_time);
+      rview.set_title(title);
+      rview.show(&omega_view);
+
+      // update current time
+      current_time += TAU;
+
+      // store two previous time solutions
+      t_prev_time_2.copy(&t_prev_time_1);
+      y_prev_time_2.copy(&y_prev_time_1);
+      t_prev_time_1.copy(&t_prev_newton);
+      y_prev_time_1.copy(&y_prev_newton);
+    } while (current_time <= T_FINAL);
+
+A few snapshots of the reaction rate $\omega$ are shown below:
+
+.. image:: img/example-17/sol1.png
+   :align: center
+   :width: 800
+   :alt: solution
+
+.. image:: img/example-17/sol2.png
+   :align: center
+   :width: 800
+   :alt: solution
+
+.. image:: img/example-17/sol3.png
+   :align: center
+   :width: 800
+   :alt: solution
+
+.. image:: img/example-17/sol4.png
+   :align: center
+   :width: 800
+   :alt: solution
+
+Navier-Stokes Equations
+-----------------------
+
+**Git reference:** Tutorial example `18-newton-timedep-ns 
+<http://hpfem.org/git/gitweb.cgi/hermes2d.git/tree/HEAD:/tutorial/18-newton-timedep-ns>`_.
+
+In this example, the time-dependent laminar incompressible Navier-Stokes equations are
+discretized in time via the implicit Euler method. If NEWTON == true,
+the Newton's method is used to solve the nonlinear problem at each time 
+step. If NEWTON == false, the convective term only is linearized using the 
+velocities from the previous time step. Obviously the latter approach is wrong, 
+but people do this frequently because it is faster and simpler to implement. 
+Therefore we include this case for comparison purposes. We also show how 
+to use discontinuous ($L^2$) elements for pressure and thus make the 
+velocity discreetely divergence free. Comparison to approximating the 
+pressure with the standard (continuous) Taylor-Hood elements is shown.  
+
+The computational domain is a rectangular channel containing a 
+circular obstacle: 
+
+.. image:: img/example-18/domain.png
+   :align: center
+   :width: 760
+   :alt: computational domain
+
+The circle is defined via NURBS. Its radius and position, as well as some additional 
+geometry parameters can be changed in the mesh file "domain.mesh":
+
+::
+
+    L = 15            # domain length (should be a multiple of 3)
+    H = 5             # domain height
+    S1 = 5/2          # x-center of circle
+    S2 = 5/2          # y-center of circle
+    R = 1             # circle radius
+    A = 1/(2*sqrt(2)) # helper length
+    EPS = 0.10        # vertical shift of the circle
+
+The Navier-Stokes equations are assumed in the standard form
+
+.. math::
+
+    \frac{\partial \bfv}{\partial t} - \frac{1}{Re}\Delta \bfv + (\bfv \cdot \nabla) \bfv + \nabla p = 0,\\
+    \mbox{div} \bfv = 0,
+
+where $\bfv = (u, v)$ is the velocity vector, $Re$ the Reynolds number, $p$ the pressure,
+and $(\bfv \cdot \nabla) \bfv$ the nonlinear convective term. We prescribe a parabolic 
+velocity profile at inlet (the left-most edge). The inlet velocity is time-dependent, it 
+increases linearly in time from zero to a user-defined value during an initial time period, 
+and then it stays constant. Standard no-slip velocity boundary conditions are prescribed 
+on the rest of the boundary with the exception of the outlet (right-most edge) where the 
+standard "do nothing" boundary conditions are prescribed. No boundary conditions are 
+prescribed for pressure - being an $L^2$-function, the pressure does not 
+admit any boundary conditions. 
+
+The role of the pressure in the Navier-Stokes equations 
+is interesting and worth a brief discussion. Since the equations only contain its gradient, 
+it is determined up to a constant. This does not mean that the problem is ill-conditioned 
+though, since the pressure only plays the role of a Lagrange multiplier that keeps 
+the velocity divergence-free. More precisely, the better the pressure is resolved, 
+the closer the approximate velocity to being divergence free. The best one can do
+is to approximate the pressure in $L^2$ (using discontinuous elements). Not only because
+it is more meaningful from the point of view of the weak formulation, but also because
+the approximate velocity automatically becomes discreetely divergence-free (integral 
+of its divergence over every element in the mesh is zero). The standard Taylor-Hood 
+elements approximating both the velocity and pressure with $H^1$-conforming (continuous)
+elements do not have this property and thus are less accurate. We will compare these
+two approaches below. Last, the pressure needs to be approximated by elements of 
+a lower polynomial degree than the velocity in order to satisfy the inf-sup condition.
+
+The time derivative is approximated using the implicit Euler method:
+
+.. math::
+
+    \frac{\bfv^{n+1}}{\tau} - \frac{\bfv^n}{\tau} - \frac{1}{Re}\Delta \bfv^{n+1} + (\bfv^{n+1} \cdot \nabla) \bfv^{n+1} + \nabla p^{n+1} = 0,\\
+    \mbox{div} \bfv^{n+1} = 0,
+
+where $\tau$ is the time step. This is a nonlinear problem that involves three equations (two for velocity components and 
+the continuity equation). Accordingly, we define three spaces:
+
+::
+
+      // spaces for velocities and pressure
+      H1Space xvel_space(&mesh, &h1_shapeset);
+      H1Space yvel_space(&mesh, &h1_shapeset);
+    #ifdef PRESSURE_IN_L2
+      L2Space p_space(&mesh, &l2_shapeset);
+    #else
+      H1Space p_space(&mesh, &h1_shapeset);
+    #endif
+
+Next we define a nonlinear or linear problem to be solved in each time step,
+depending on whether we want to employ the Newton's method or not:
+
+::
+
+      if (NEWTON) {
+        // set up the nonlinear system
+        nls.set_spaces(3, &xvel_space, &yvel_space, &p_space);
+    #ifdef PRESSURE_IN_L2
+        nls.set_pss(3, &h1_pss, &h1_pss, &l2_pss);
+    #else
+        nls.set_pss(1, &h1_pss);
+    #endif
+      }
+      else {
+        // set up the linear system
+        ls.set_spaces(3, &xvel_space, &yvel_space, &p_space);
+    #ifdef PRESSURE_IN_L2
+        ls.set_pss(3, &h1_pss, &h1_pss, &l2_pss);
+    #else
+        ls.set_pss(1, &h1_pss);
+    #endif
+      }
+
+The time stepping loop looks as follows:
+
+::
+
+    // time-stepping loop
+    char title[100];
+    int num_time_steps = T_FINAL / TAU;
+    for (int i = 1; i <= num_time_steps; i++)
+    {
+      TIME += TAU;
+
+      info("\n---- Time step %d, time = %g:\n", i, TIME);
+
+      // this is needed to update the time-dependent boundary conditions
+      ndofs = 0;
+      ndofs += xvel_space.assign_dofs(ndofs);
+      ndofs += yvel_space.assign_dofs(ndofs);
+      ndofs += p_space.assign_dofs(ndofs);
+
+      if (NEWTON) {
+        // Newton's method
+        nls.solve_newton_3(&xvel_prev_newton, &yvel_prev_newton, &p_prev, NEWTON_TOL, NEWTON_MAX_ITER);
+
+        // copy the result of the Newton's iteration into the 
+        // previous time level solutions
+        xvel_prev_time.copy(&xvel_prev_newton);
+        yvel_prev_time.copy(&yvel_prev_newton);
+      }
+      else {
+        // assemble and solve
+        Solution xvel_sln, yvel_sln, p_sln;
+        ls.assemble();
+        ls.solve(3, &xvel_sln, &yvel_sln, &p_sln);
+
+        // this copy destroys xvel_sln and yvel_sln 
+        // which are no longer needed
+        xvel_prev_time = xvel_sln;
+        yvel_prev_time = yvel_sln;
+      }
+    }
+
+The following comparisons demonstrate the effect of using the Newton's method, and continuous vs. discontinuous 
+elements for the pressure. There are three triplets of velocity snapshots. In each one, the images 
+were obtained with (1) NEWTON == false && PRESSURE_IN_L2 undefined, (2) NEWTON == true && PRESSURE_IN_L2 
+undefined, and (3) NEWTON == true && PRESSURE_IN_L2 defined. It follows from these comparisons that one 
+should definitely use the option (3).
+
+
+Time t = 10 s:
+
+.. image:: img/example-18/sol_no_newton_10.png
+   :align: center
+   :width: 840
+   :alt: solution
+
+.. image:: img/example-18/sol_newton_10.png
+   :align: center
+   :width: 840
+   :alt: solution
+
+.. image:: img/example-18/sol_l2_newton_10.png
+   :align: center
+   :width: 840
+   :alt: solution
+
+Time t = 15 s:
+
+.. image:: img/example-18/sol_no_newton_15.png
+   :align: center
+   :width: 840
+   :alt: solution
+
+.. image:: img/example-18/sol_newton_15.png
+   :align: center
+   :width: 840
+   :alt: solution
+
+.. image:: img/example-18/sol_l2_newton_15.png
+   :align: center
+   :width: 840
+   :alt: solution
+
+Time t = 20 s:
+
+.. image:: img/example-18/sol_no_newton_20.png
+   :align: center
+   :width: 840
+   :alt: solution
+
+.. image:: img/example-18/sol_newton_20.png
+   :align: center
+   :width: 840
+   :alt: solution
+
+.. image:: img/example-18/sol_l2_newton_20.png
+   :align: center
+   :width: 840
+   :alt: solution
+
+Snapshot of a continuous pressure approximation (t = 20 s):
+
+.. image:: img/example-18/p_no_newton_20.png
+   :align: center
+   :width: 840
+   :alt: solution
+
+Snapshot of a discontinuous pressure approximation (t = 20 s):
+
+.. image:: img/example-18/p_l2_newton_20.png
+   :align: center
+   :width: 840
+   :alt: solution
+
+Gross-Pitaevski Equation
+------------------------
+
+**Git reference:** Tutorial example `19-newton-timedep-gp 
+<http://hpfem.org/git/gitweb.cgi/hermes2d.git/tree/HEAD:/tutorial/19-newton-timedep-gp>`_.
+
+In this example we use the Newton's method to solve the nonlinear complex-valued 
+time-dependent Gross-Pitaevski equation. This equation describes the ground state of 
+a quantum system of identical bosons using the Hartree–Fock approximation and the 
+pseudopotential interaction model. For time-discretization one can use either
+the first-order implicit Euler method or the second-order Crank-Nicolson
+method. 
+
+The computational domain is the square $(-1,1)^2$ and boundary conditions are zero Dirichlet. The equation has the form 
+
+.. math::
+
+    i\hbar \frac{\partial \psi}{\partial t} = -\frac{\hbar^2}{2m} \Delta \psi + g \psi |\psi|^2 + \frac{m}{2} \omega^2 (x^2 + y^2) \psi
+
+where $\psi(x,y)$ is the unknown solution (wave function), $i$ the complex unit, 
+$\hbar$ the Planck constant, $m$ the mass of the boson, 
+$g$ the coupling constant (proportional to the scattering length of two interacting bosons) and 
+$\omega$ the frequency.
+
+From the implementation point of view, the only detail worth mentioning is the 
+use of the complex version of Hermes in the `CMakeLists.txt 
+<http://hpfem.org/git/gitweb.cgi/hermes2d.git/blob/HEAD:/tutorial/19-newton-timedep-gp/CMakeLists.txt>`_ file:
+
+::
+
+    # use the complex version of the library:
+    set(HERMES ${HERMES_CPLX_BIN})
+
+The weak forms can be found in the file `forms.cpp <http://hpfem.org/git/gitweb.cgi/hermes2d.git/blob/HEAD:/tutorial/19-newton-timedep-gp/forms.cpp>`_:
+
+::
+
+    // Residuum for the implicit Euler time discretization
+    template<typename Real, typename Scalar>
+    Scalar F_euler(int n, double *wt, Func<Real> *v, Geom<Real> *e, ExtData<Scalar> *ext)
+    {
+      scalar ii = cplx(0.0, 1.0);  // imaginary unit, ii^2 = -1
+
+      Scalar result = 0;
+      Func<Scalar>* psi_prev_newton = ext->fn[0];
+      Func<Scalar>* psi_prev_time = ext->fn[1];
+      for (int i = 0; i < n; i++)
+        result += wt[i] * (ii * H * (psi_prev_newton->val[i] - psi_prev_time->val[i]) * v->val[i] / TAU
+                - H*H/(2*M) * (psi_prev_newton->dx[i] * v->dx[i] + psi_prev_newton->dy[i] * v->dy[i])
+                - G * psi_prev_newton->val[i] *  psi_prev_newton->val[i] * conj(psi_prev_newton->val[i]) * v->val[i]
+                - .5*M*OMEGA*OMEGA * (e->x[i] * e->x[i] + e->y[i] * e->y[i]) * psi_prev_newton->val[i] * v->val[i]);
+
+      return result;
+    }
+
+    // Jacobian for the implicit Euler time discretization
+    template<typename Real, typename Scalar>
+    Scalar J_euler(int n, double *wt, Func<Real> *u, Func<Real> *v, Geom<Real> *e, ExtData<Scalar> *ext)
+    {
+      scalar ii = cplx(0.0, 1.0);  // imaginary unit, ii^2 = -1
+
+      Scalar result = 0;
+      Func<Scalar>* psi_prev_newton = ext->fn[0];
+      for (int i = 0; i < n; i++)
+        result += wt[i] * (ii * H * u->val[i] * v->val[i] / TAU
+                         - H*H/(2*M) * (u->dx[i] * v->dx[i] + u->dy[i] * v->dy[i])
+                         - 2* G * u->val[i] *  psi_prev_newton->val[i] * conj(psi_prev_newton->val[i]) * v->val[i]
+                         - G * psi_prev_newton->val[i] * psi_prev_newton->val[i] * u->val[i] * v->val[i]
+                         - .5*M*OMEGA*OMEGA * (e->x[i] * e->x[i] + e->y[i] * e->y[i]) * u->val[i] * v->val[i]);
+      return result;
+    }
+
+    // Residuum for the Crank-Nicolson method
+    template<typename Real, typename Scalar>
+    Scalar F_cranic(int n, double *wt, Func<Real> *v, Geom<Real> *e, ExtData<Scalar> *ext)
+    {
+      scalar ii = cplx(0.0, 1.0);  // imaginary unit, ii^2 = -1
+
+      Scalar result = 0;
+      Func<Scalar>* psi_prev_newton = ext->fn[0];
+      Func<Scalar>* psi_prev_time = ext->fn[1];
+      for (int i = 0; i < n; i++)
+        result += wt[i] * (ii * H * (psi_prev_newton->val[i] - psi_prev_time->val[i]) * v->val[i] / TAU
+                - 0.5*H*H/(2*M) * (psi_prev_newton->dx[i] * v->dx[i] + psi_prev_newton->dy[i] * v->dy[i])
+                - 0.5*H*H/(2*M) * (psi_prev_time->dx[i] * v->dx[i] + psi_prev_time->dy[i] * v->dy[i])
+                - 0.5*G * psi_prev_newton->val[i] *  psi_prev_newton->val[i] * conj(psi_prev_newton->val[i]) * v->val[i]
+                - 0.5*G * psi_prev_time->val[i] *  psi_prev_time->val[i] * conj(psi_prev_time->val[i]) * v->val[i]
+                - 0.5*0.5*M*OMEGA*OMEGA * (e->x[i] * e->x[i] + e->y[i] * e->y[i]) * (psi_prev_newton->val[i] + psi_prev_time->val[i]) * v->val[i]);
+
+      return result;
+    }
+
+    // Jacobian for the Crank-Nicolson method
+    template<typename Real, typename Scalar>
+    Scalar J_cranic(int n, double *wt, Func<Real> *u, Func<Real> *v, Geom<Real> *e, ExtData<Scalar> *ext)
+    {
+      scalar ii = cplx(0.0, 1.0);  // imaginary unit, ii^2 = -1
+
+      Scalar result = 0;
+      Func<Scalar>* psi_prev_newton = ext->fn[0];
+      for (int i = 0; i < n; i++)
+        result += wt[i] * (ii * H * u->val[i] * v->val[i] / TAU
+                         - 0.5*H*H/(2*M) * (u->dx[i] * v->dx[i] + u->dy[i] * v->dy[i])
+                         - 0.5*2* G * u->val[i] *  psi_prev_newton->val[i] * conj(psi_prev_newton->val[i]) * v->val[i]
+                         - 0.5*G * psi_prev_newton->val[i] *  psi_prev_newton->val[i] * u->val[i] * v->val[i]
+                         - 0.5*.5*M*OMEGA*OMEGA * (e->x[i] * e->x[i] + e->y[i] * e->y[i]) * u->val[i] * v->val[i]);
+      return result; 
+    }
+
+The way the weak forms are registered is standard:
+
+::
+
+    // initialize the weak formulation
+    WeakForm wf(1);
+    if(TIME_DISCR == 1) {
+      wf.add_biform(0, 0, callback(jacobian_euler), UNSYM, ANY, 1, &Psi_prev_newton);
+      wf.add_liform(0, callback(residuum_euler), ANY, 2, &Psi_prev_newton, &Psi_prev_time);
+    }
+    else {
+      wf.add_biform(0, 0, callback(jacobian_cranic), UNSYM, ANY, 1, &Psi_prev_newton);
+      wf.add_liform(0, callback(residuum_cranic), ANY, 2, &Psi_prev_newton, &Psi_prev_time);
+    }
+
+Also the time stepping loop and the call to the Newton's method 
+will not surprize a reader who made it this far in the tutorial:
+
+::
+
+    // time stepping loop
+    int nstep = (int)(T_FINAL/TAU + 0.5);
+    for(int n = 1; n <= nstep; n++)
+    {
+      info("\n---- Time step %d:\n", n);
+
+      // Newton's method
+      nls.solve_newton_1(&Psi_prev_newton, NEWTON_TOL, NEWTON_MAX_ITER);
+
+      // copy result of the Newton's iteration into Psi_prev_time
+      Psi_prev_time.copy(&Psi_prev_newton);
+    }
+
+Sample solution snapshots are shown below:
+
+
+Snapshot 1:
+
+.. image:: img/example-19/sol_1.png
+   :align: center
+   :width: 600
+   :alt: solution
+
+Snapshot 2:
+
+.. image:: img/example-19/sol_2.png
+   :align: center
+   :width: 600
+   :alt: solution
+
+Snapshot 3:
+
+.. image:: img/example-19/sol_3.png
+   :align: center
+   :width: 600
+   :alt: solution
+
+
+=========================================================
+Tutorial Part IV (Adaptivity for Time-Dependent Problems)
+=========================================================
+
+(Space-time) adaptive FEM and *hp*-FEM for time-dependent PDE and PDE systems is one of 
+the most advanced techniques Hermes can do. Although we have published it 
+in several `scientific articles 
+<http://hpfem.math.unr.edu/people/pavel/public/papers.html>`_, 
+there is still a lot of space for improvement. Let us know through the
+`Hermes2D mailing list <http://groups.google.com/group/hermes2d/>`_ if 
+you are interested in getting involved. In this part of the tutorial 
+we explain the basic idea of the method and show several examples.
+
+Adaptive hp-FEM with Dynamical Meshes
+-------------------------------------
+
+The adaptivity with dynamical meshes in Hermes is based on the combination 
+of the multimesh *hp*-FEM with the classical Rothe's method. 
+
+The Rothe's method is a natural counterpart of the widely used Method of Lines (MOL). 
+Recall that the MOL performs discretization in space while 
+keeping the time variable continuous, which leads to a system of ODEs in time. The Rothe's 
+method, on the contrary, preserves the continuity of the spatial variable while discretizing time. 
+In every time step, an evolutionary PDE is approximated by means of one or more time-independent ones. 
+The number of the time-independent equations per time step is proportional to the order of accuracy of the 
+time discretization method. For example, when employing the implicit Euler method, one 
+has to solve one time-independent PDE per time step. The Rothe's method is fully equivalent to the 
+MOL if no adaptivity in space or time takes place, but it provides a better setting 
+for the application of spatially adaptive algorithms. The spatial discretization error
+can be controlled by solving the time-independent equations adaptively, and the size of 
+the time step can be adjusted using standard ODE techniques. 
+
+For the sake of clarity, let us consider a simple linear parabolic problem 
+
+.. math::
+
+    \frac{\partial u}{\partial t} - \Delta u = f
+
+and discretize the time variable using the implicit Euler method. We obtain 
+
+.. math::
+
+    \frac{u^{n+1} - u^n}{\tau} - \Delta u^{n+1} = f^{n+1},
+
+where 
+
+.. math::
+
+    u^{n+1}(x,y) \approx u(x, y, t^{n+1})\ \mbox{and} \  f^{n+1}(x, y) \approx f(x, y, t^{n+1}).
+
+The equation for $u^{n+1}$ does no longer depend on time and we can solve it adaptively 
+as any other time-independent equation (or equation system). The only thing worth 
+mentioning is that the previous time step approximation $u^n$ is now defined on 
+a locally refined mesh that was obtained during the previous time step. This 
+situation, however, can be handled routinely via the multimesh discretization 
+method. In fact, the user does not have to worry about anything. The methodology is 
+illustrated below.
+
+Nonlinear Parabolic Problem
+---------------------------
+
+**Git reference:** Tutorial example `20-newton-timedep-heat-adapt 
+<http://hpfem.org/git/gitweb.cgi/hermes2d.git/tree/HEAD:/tutorial/20-newton-timedep-heat-adapt>`_.
+
+Description coming soon.
+
+
+Flame Propagation Problem
+-------------------------
+
+Coming soon.
+
+
+Navier-Stokes Equations
+-----------------------
+
+Coming soon.
+
+
+Gross-Pitaevski Equation
+------------------------
+
+**Git reference:** Tutorial example `23-newton-timedep-gp-adapt 
+<http://hpfem.org/git/gitweb.cgi/hermes2d.git/tree/HEAD:/tutorial/23-newton-timedep-gp-adapt>`_.
+
+Description coming soon.

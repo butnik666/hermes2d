@@ -25,8 +25,8 @@ struct Trf
   double2 t; ///< translation vector
 };
 
-EXTERN Trf tri_trf[4];  ///< table of triangle sub-element transforms
-EXTERN Trf quad_trf[8]; ///< table of quad sub-element transforms
+extern HERMES2D_API Trf tri_trf[4];  ///< table of triangle sub-element transforms
+extern HERMES2D_API Trf quad_trf[8]; ///< table of quad sub-element transforms
 
 
 /// Transformable is a base class for all classes that perform some kind of precalculation of
@@ -34,7 +34,7 @@ EXTERN Trf quad_trf[8]; ///< table of quad sub-element transforms
 /// from Transformable the ability to transform integration points to the sub-elements
 /// of an element.
 ///
-class PUBLIC_API Transformable
+class HERMES2D_API Transformable
 {
 public:
 
@@ -92,10 +92,10 @@ public:
   /// Sets the current transform at once as if it was created by multiple calls to push_transform().
   /// \param idx [in] The number of the sub-element, as returned by get_transform().
   void set_transform(uint64_t idx);
-  
+
   /// \return The current transform index.
   uint64_t get_transform() const { return sub_idx; }
-  
+
   /// Empties the stack, loads identity transform.
   void reset_transform()
   {

@@ -11,29 +11,26 @@
 
 
 #ifndef HAVE_FMEMOPEN
-/// Implementation of GNU fmemopen. Intended to be used if the current platform does not support it. 
+/// Implementation of GNU fmemopen. Intended to be used if the current platform does not support it.
 FILE *fmemopen (void *buf, size_t size, const char *opentype);
 #endif
 
 //Windows DLL export/import definitions
 #if defined(WIN32) || defined(_WINDOWS)
 # if defined(_HERMESDLL)
-#   define PUBLIC_API __declspec(dllexport)
-#   define PUBLIC_API_USED_TEMPLATE(__implementation) template class PUBLIC_API __implementation
-#   define PUBLIC_API_USED_STL_VECTOR(__type) PUBLIC_API_USED_TEMPLATE(std::allocator<__type>); PUBLIC_API_USED_TEMPLATE(std::vector<__type>)
-#   define EXTERN extern PUBLIC_API
+#   define HERMES2D_API __declspec(dllexport)
+#   define HERMES2D_API_USED_TEMPLATE(__implementation) template class HERMES2D_API __implementation
+#   define HERMES2D_API_USED_STL_VECTOR(__type) HERMES2D_API_USED_TEMPLATE(std::allocator<__type>); HERMES2D_API_USED_TEMPLATE(std::vector<__type>)
 # else
-#   define PUBLIC_API __declspec(dllimport)
-#   define PUBLIC_API_USED_TEMPLATE(__implementation)
-//#   define PUBLIC_API_USED_TEMPLATE(__implementation) extern template class PUBLIC_API __implementation
-#   define PUBLIC_API_USED_STL_VECTOR(__type) PUBLIC_API_USED_TEMPLATE(std::allocator<__type>); PUBLIC_API_USED_TEMPLATE(std::vector<__type>)
-#   define EXTERN extern PUBLIC_API
+#   define HERMES2D_API __declspec(dllimport)
+#   define HERMES2D_API_USED_TEMPLATE(__implementation)
+//#   define HERMES2D_API_USED_TEMPLATE(__implementation) extern template class HERMES2D_API __implementation
+#   define HERMES2D_API_USED_STL_VECTOR(__type) HERMES2D_API_USED_TEMPLATE(std::allocator<__type>); HERMES2D_API_USED_TEMPLATE(std::vector<__type>)
 # endif
 #else
-# define PUBLIC_API
-# define PUBLIC_API_USED_TEMPLATE(__implementation)
-# define PUBLIC_API_USED_STL_VECTOR(__type)
-# define EXTERN extern
+# define HERMES2D_API
+# define HERMES2D_API_USED_TEMPLATE(__implementation)
+# define HERMES2D_API_USED_STL_VECTOR(__type)
 #endif
 
 //C99 functions

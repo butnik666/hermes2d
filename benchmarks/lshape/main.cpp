@@ -27,10 +27,7 @@ const int STRATEGY = 0;           // Adaptive strategy:
                                   // STRATEGY = 2 ... refine all elements whose error is larger
                                   //   than THRESHOLD.
                                   // More adaptive strategies can be created in adapt_ortho_h1.cpp.
-const int ADAPT_TYPE = 0;         // Type of automatic adaptivity:
-                                  // ADAPT_TYPE = 0 ... adaptive hp-FEM (default),
-                                  // ADAPT_TYPE = 1 ... adaptive h-FEM,
-                                  // ADAPT_TYPE = 2 ... adaptive p-FEM.
+const RefinementSelectors::AllowedCandidates ADAPT_TYPE = RefinementSelectors::H2DRS_CAND_HP;         // Type of automatic adaptivity.
 const bool ISO_ONLY = false;      // Isotropic refinement flag (concerns quadrilateral elements only).
                                   // ISO_ONLY = false ... anisotropic refinement of quad elements
                                   // is allowed (default),
@@ -42,9 +39,12 @@ const int MESH_REGULARITY = -1;   // Maximum allowed level of hanging nodes:
                                   // MESH_REGULARITY = 2 ... at most two-level hanging nodes, etc.
                                   // Note that regular meshes are not supported, this is due to
                                   // their notoriously bad performance.
-const double ERR_STOP = 0.1;      // Stopping criterion for adaptivity (rel. error tolerance between the
+const double CONV_EXP = 1.0;      // Default value is 1.0. This parameter influences the selection of
+                                  // cancidates in hp-adaptivity. See get_optimal_refinement() for details.
+                                  // error behavior err \approx const1*exp(-const2*pow(NDOF, CONV_EXP)).
+const double ERR_STOP = 0.001;    // Stopping criterion for adaptivity (rel. error tolerance between the
                                   // fine mesh and coarse mesh solution in percent).
-const int NDOF_STOP = 40000;      // Adaptivity process stops when the number of degrees of freedom grows
+const int NDOF_STOP = 60000;      // Adaptivity process stops when the number of degrees of freedom grows
                                   // over this limit. This is to prevent h-adaptivity to go on forever.
 
 // exact solution
@@ -94,7 +94,7 @@ int main(int argc, char* argv[])
                                                // on the coarse mesh lshape.mesh if P_INIT == 1
 
   // initialize the shapeset and the cache
-  H1ShapesetOrtho shapeset;
+  H1Shapeset shapeset;
   PrecalcShapeset pss(&shapeset);
 
   // create finite element space
@@ -116,6 +116,9 @@ int main(int argc, char* argv[])
 
   // matrix solver
   UmfpackSolver solver;
+
+  // prepare selector
+  RefinementSelectors::H1NonUniformHP selector(ISO_ONLY, ADAPT_TYPE, CONV_EXP, H2DRS_DEFAULT_ORDER, &shapeset);
 
   // DOF and CPU convergence graphs
   SimpleGraph graph_dof_est, graph_dof_exact, graph_cpu_est, graph_cpu_exact;
@@ -160,7 +163,7 @@ int main(int argc, char* argv[])
     rs.solve(1, &sln_fine);
 
     // calculate error estimate wrt. fine mesh solution
-    H1OrthoHP hp(1, &space);
+    H1AdaptHP hp(1, &space);
     double err_est = hp.calc_error(&sln_coarse, &sln_fine) * 100;
     info("Estimate of error: %g%%", err_est);
 
@@ -179,7 +182,7 @@ int main(int argc, char* argv[])
     // if err_est too large, adapt the mesh
     if (err_est < ERR_STOP) done = true;
     else {
-      hp.adapt(THRESHOLD, STRATEGY, ADAPT_TYPE, ISO_ONLY, MESH_REGULARITY);
+      hp.adapt(THRESHOLD, STRATEGY, &selector, MESH_REGULARITY);
       ndofs = space.assign_dofs();
       if (ndofs >= NDOF_STOP) done = true;
     }
@@ -195,6 +198,6 @@ int main(int argc, char* argv[])
   sview.show(&sln_fine);
 
   // wait for keyboard or mouse input
-  View::wait("Waiting for all views to be closed.");
+  View::wait();
   return 0;
 }

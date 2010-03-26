@@ -27,7 +27,7 @@
 #include "order_view.h"
 
 OrderView::OrderView(const char* title, int x, int y, int width, int height)
-         : View(title, x, y, width, height) 
+         : View(title, x, y, width, height)
 {
   b_scale = true;
   b_orders = false;
@@ -57,28 +57,29 @@ void OrderView::show(Space* space)
 {
   if (!space->is_up_to_date())
     error("The space is not up to date.");
-  
-  ord.lock_data();  
+
+  ord.lock_data();
   ord.process_solution(space);
-  center_mesh(ord.get_vertices(), ord.get_num_vertices());
+  ord.calc_vertices_aabb(&vertices_min_x, &vertices_max_x, &vertices_min_y, &vertices_max_y);
+  init_order_palette(ord.get_vertices());
   ord.unlock_data();
 
   create();
-  init_order_palette();
   update_layout();
+  reset_view(false);
   refresh();
   wait_for_draw();
 }
 
-void OrderView::init_order_palette() {
-  int min = 1, max = 1;
-  double3* vert = ord.get_vertices();
+void OrderView::init_order_palette(double3* vert) {
+  int min = 1, max = (int) vert[0][2];
   for (int i = 0; i < ord.get_num_vertices(); i++)
   {
     if ((int) vert[i][2] < min) min = (int) vert[i][2];
     if ((int) vert[i][2] > max) max = (int) vert[i][2];
   }
-  
+  debug_assert(max <= H2DV_MAX_VIEWABLE_ORDER, "E maximum order in data is %d but OrderView supports only order %d", max, H2DV_MAX_VIEWABLE_ORDER);
+
   num_boxes = max - min + 1;
   char* buf = text_buffer;
   for (int i = 0; i < num_boxes; i++)
@@ -89,14 +90,14 @@ void OrderView::init_order_palette() {
       order_colors[i+min][2] = (float) (order_palette[i+min] & 0xff) / 0xff;
     }
     else {
-      get_palette_color((i + min - 1) / 9.0, &order_colors[i+min][0]);
+      get_palette_color((i + min) / (double)H2DV_MAX_VIEWABLE_ORDER, &order_colors[i+min][0]);
     }
-    
+
     sprintf(buf, "%d", i + min);
     box_names[i] = buf;
     buf += strlen(buf)+1;
   }
-  
+
   scale_height = num_boxes * scale_box_height + (num_boxes-1) * scale_box_skip;
   order_min = min;
 }
@@ -108,7 +109,7 @@ void OrderView::on_display()
   glDisable(GL_TEXTURE_1D);
   glDisable(GL_LIGHTING);
   glDisable(GL_DEPTH_TEST);
- 
+
   // transform all vertices
   ord.lock_data();
   int i, nv = ord.get_num_vertices();
@@ -119,7 +120,7 @@ void OrderView::on_display()
     tvert[i][0] = transform_x(vert[i][0]);
     tvert[i][1] = transform_y(vert[i][1]);
   }
-  
+
   // draw all triangles
   int3* tris = ord.get_triangles();
   glBegin(GL_TRIANGLES);
@@ -127,13 +128,13 @@ void OrderView::on_display()
   {
     const float* color = order_colors[(int) vert[tris[i][0]][2]];
     glColor3f(color[0], color[1], color[2]);
-    
+
     glVertex2d(tvert[tris[i][0]][0], tvert[tris[i][0]][1]);
     glVertex2d(tvert[tris[i][1]][0], tvert[tris[i][1]][1]);
     glVertex2d(tvert[tris[i][2]][0], tvert[tris[i][2]][1]);
   }
   glEnd();
-  
+
   // draw all edges
   if (pal_type == 0)
     glColor3f(0.4f, 0.4f, 0.4f);
@@ -167,11 +168,11 @@ void OrderView::on_display()
           glColor3f(0, 0, 0);
         else
           glColor3f(1, 1, 1);
-        
+
         draw_text(tvert[lvert[i]][0], tvert[lvert[i]][1], ltext[i], 0);
       }
   }
-    
+
   delete [] tvert;
   ord.unlock_data();
 }
@@ -193,17 +194,15 @@ void OrderView::on_key_down(unsigned char key, int x, int y)
   switch (key)
   {
     case 'c':
-      ord.lock_data();
-      center_mesh(ord.get_vertices(), ord.get_num_vertices());
-      ord.unlock_data();
+      reset_view(true);
       refresh();
       break;
-    
+
     case 'm':
       b_orders = !b_orders;
       refresh();
       break;
-        
+
     case 'p':
     {
       switch(pal_type) {
@@ -214,11 +213,13 @@ void OrderView::on_key_down(unsigned char key, int x, int y)
         default: error("E invalid palette type");
       }
       debug_log("I switche to palette type %d", (int)pal_type);
-      init_order_palette();
+      ord.lock_data();
+      init_order_palette(ord.get_vertices());
+      ord.unlock_data();
       refresh();
       break;
     }
-    
+
     default:
       View::on_key_down(key, x, y);
       break;
@@ -230,12 +231,13 @@ void OrderView::load_data(const char* filename)
 {
   ord.load_data(filename);
   ord.lock_data();
-  center_mesh(ord.get_vertices(), ord.get_num_vertices());
+  ord.calc_vertices_aabb(&vertices_min_x, &vertices_max_x, &vertices_min_y, &vertices_max_y);
+  init_order_palette(ord.get_vertices());
   ord.unlock_data();
-  
+
   create();
-  init_order_palette();
   update_layout();
+  reset_view(false);
   refresh();
   wait_for_draw();
 }
@@ -243,7 +245,7 @@ void OrderView::load_data(const char* filename)
 
 void OrderView::save_data(const char* filename)
 {
-  if (ord.get_num_triangles() <= 0) 
+  if (ord.get_num_triangles() <= 0)
     error("No data to save.");
   ord.save_data(filename);
 }
@@ -259,7 +261,7 @@ void OrderView::save_numbered(const char* format, int number)
 
 const char* OrderView::get_help_text() const
 {
-  return 
+  return
   "OrderView\n\n"
   "Controls:\n"
   "  Left mouse - pan\n"

@@ -19,15 +19,25 @@
 #include "common.h"
 #include "config.h"
 
+/* Indices of values in the quadrature vector of a type double3. */
+#define H2D_GIP2D_X 0
+#define H2D_GIP2D_Y 1
+#define H2D_GIP2D_W 2
+
+#define H2D_GIP1D_X 0
+#define H2D_GIP1D_W 1
+
 #ifdef EXTREME_QUAD
   const int g_max_quad = 99;
 #else
+  // debug
+  //const int g_max_quad = 30;
   const int g_max_quad = 24;
 #endif
 
 /// Quad1D is a base class for all 1D quadrature points.
 ///
-class PUBLIC_API Quad1D
+class HERMES2D_API Quad1D
 {
 public:
 
@@ -52,7 +62,7 @@ protected:
 
 /// Quad2D is a base class for all 2D quadrature points on triangles and quads.
 ///
-class PUBLIC_API Quad2D
+class HERMES2D_API Quad2D
 {
 public:
 

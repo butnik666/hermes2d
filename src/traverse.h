@@ -33,7 +33,7 @@ struct UniData
 /// same base mesh it walks through all (pseudo-)elements of the union of all
 /// the N meshes.
 ///
-class PUBLIC_API Traverse
+class HERMES2D_API Traverse
 {
 public:
 
@@ -59,7 +59,7 @@ private:
   Element* base;
   int4* sons;
   uint64_t* subs;
-  
+
   UniData** unidata;
   int udsize;
 
@@ -67,7 +67,7 @@ private:
   void set_boundary_info(State* s, bool* bnd, EdgePos* ep);
   void union_recurrent(Rect* cr, Element** e, Rect* er, uint64_t* idx, Element* uni);
   uint64_t init_idx(Rect* cr, Rect* er);
-  
+
   Mesh* unimesh;
 
 };

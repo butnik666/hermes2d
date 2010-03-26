@@ -20,6 +20,7 @@
 
 // common headers
 #include <stdexcept>
+#include <sstream>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stddef.h> //allows to use offsetof
@@ -36,6 +37,8 @@
 #include <string>
 #include <set>
 #include <queue>
+#include <sstream>
+#include <fstream>
 
 // platform compatibility stuff
 #include "compat.h"
@@ -57,7 +60,13 @@ enum // element modes
 };
 
 
+// DEPRECATED:
+// TODO: go over all hermes and rename ANY to ANY_BOUNDARY
 const int ANY = -1234;
+// call the form on all element edges (both boundary and interior)
+const int ANY_EDGE = -12345;
+// call the form on all domain boundary edges only
+const int ANY_BOUNDARY = -1234;
 
 // how many bits the order number takes
 const int order_bits = 5;
@@ -68,7 +77,7 @@ const int order_mask = (1 << order_bits) - 1;
 #define make_quad_order(h_order, v_order) (((v_order) << order_bits) + (h_order))
 #define get_h_order(order) ((order) & order_mask)
 #define get_v_order(order) ((order) >> order_bits)
-
+extern HERMES2D_API const std::string get_quad_order_str(const int quad_order); ///< Returns string representation of the quad order: used for debugging purposses.
 
 #ifdef COMPLEX
   #include <complex>
@@ -114,13 +123,13 @@ inline cplx conj(cplx a) { return std::conj(a); }
 #define is_int(x) ((int) (x) == (x))
 
 
-EXTERN bool verbose_mode;
-EXTERN bool info_mode;
-EXTERN bool warn_integration;
-EXTERN void __error_fn(const char* fname, const char* msg, ...);
-EXTERN void __warn_fn(const char* fname, const char* msg, ...);
-EXTERN void __info_fn(const char* msg, ...);
-EXTERN void __verbose_fn(const char* msg, ...);
+extern HERMES2D_API bool verbose_mode;
+extern HERMES2D_API bool info_mode;
+extern HERMES2D_API bool warn_integration;
+extern HERMES2D_API void __error_fn(const char* fname, const char* msg, ...);
+extern HERMES2D_API void __warn_fn(const char* fname, const char* msg, ...);
+extern HERMES2D_API void __info_fn(const char* msg, ...);
+extern HERMES2D_API void __verbose_fn(const char* msg, ...);
 
 
 #ifdef _WIN32
@@ -132,7 +141,7 @@ EXTERN void __verbose_fn(const char* msg, ...);
   #else
     // other Win32 compiler
     #ifndef __ASSERT_FUNCTION
-      #define __ASSERT_FUNCTION "<unknown function>"
+      #define __ASSERT_FUNCTION __FUNCTION__
     #endif
   #endif
 #else
@@ -153,15 +162,17 @@ EXTERN void __verbose_fn(const char* msg, ...);
 #define verbose(...) __verbose_fn(__VA_ARGS__)
 
 /* logging macros */
-#if defined(_DEBUG) || defined(NDEBUG)
-EXTERN void debug_log(const char* msg, ...); ///< Logs output to an external file. Ignored if not debug.
-EXTERN void debug_assert(const bool cond, const char* msg, ...); ///< Checks the condition. If failed, it logs output to an external file and it invokes assert. Ignored if not debug.
+#ifdef _DEBUG
+extern HERMES2D_API void debug_log(const char* msg, ...); ///< Logs output to an external file. Ignored if not debug.
+extern HERMES2D_API bool __debug_assert(const bool cond, const char* file, const int line, const char* msg, ...); ///< Checks the condition. If failed, it logs output to an external file. Returns true if abort is required. Ignored if not debug.
+# define debug_assert(__cond, ...) if (__debug_assert(__cond, __FILE__, __LINE__, __VA_ARGS__)) abort()
 #else
-# define debug_log(__msg, ...)
-# define debug_assert(__cond, __msg, ...)
+# define debug_log(...)
+# define debug_assert(...)
 #endif
-EXTERN void log_msg(const char* msg, ...); ///< Logs output to an external file.
-EXTERN void assert_msg(const bool cond, const char* msg, ...); ///< Checks the condition. If failed, it logs output to an external file and it invokes assert.
+extern HERMES2D_API void log_msg(const char* msg, ...); ///< Logs output to an external file.
+extern HERMES2D_API bool __assert_msg(const bool cond, const char* file, const int line, const char* msg, ...); ///< Checks the condition. If failed, it logs output to an external file. Returns true if abort is required.
+#define assert_msg(__cond, ...) if (__assert_msg(__cond, __FILE__, __LINE__, __VA_ARGS__)) abort()
 
 void __hermes2d_fwrite(const void* ptr, size_t size, size_t nitems, FILE* stream, const char* fname);
 void __hermes2d_fread(void* ptr, size_t size, size_t nitems, FILE* stream, const char* fname);
@@ -173,9 +184,9 @@ void __hermes2d_fread(void* ptr, size_t size, size_t nitems, FILE* stream, const
       __hermes2d_fread((ptr), (size), (nitems), (stream), __ASSERT_FUNCTION)
 
 
-EXTERN void begin_time();
-EXTERN double cur_time();
-EXTERN double end_time();
+extern HERMES2D_API void begin_time();
+extern HERMES2D_API double cur_time();
+extern HERMES2D_API double end_time();
 
 
 void throw_exception(char *text);

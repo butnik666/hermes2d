@@ -57,11 +57,11 @@ static int default_order_table_quad[] =
 };
 #endif
 
-PUBLIC_API int  g_max_order;
-PUBLIC_API int  g_safe_max_order;
+HERMES2D_API int  g_max_order;
+HERMES2D_API int  g_safe_max_order;
 int* g_order_table_quad = default_order_table_quad;
 int* g_order_table_tri  = default_order_table_tri;
-PUBLIC_API int* g_order_table = NULL;
+HERMES2D_API int* g_order_table = NULL;
 bool warned_order = false;
 //extern bool warned_order;
 extern void update_limit_table(int mode);
@@ -331,7 +331,8 @@ void LinSystem::create_matrix(bool rhsonly)
   ndofs = 0;
   for (int i = 0; i < wf->neq; i++)
     ndofs += spaces[i]->get_num_dofs();
-  if (!ndofs) return;
+  if (!ndofs)
+    error("zero matrix size.");
 
   // get row and column indices of nonzero matrix elements
   Page** pages = new Page*[ndofs];
@@ -352,7 +353,7 @@ void LinSystem::create_matrix(bool rhsonly)
     pos += sort_and_store_indices(pages[i], Ai + pos, Ai + aisize);
   }
   Ap[i] = pos;
-  verbose("  (dofs: %d, nnz: %d, size: %0.1lf MB, time: %g sec)",
+  verbose("  (ndof: %d, nnz: %d, size: %0.1lf MB, time: %g sec)",
           ndofs, pos, (double) get_matrix_size() / (1024*1024), end_time());
   delete [] pages;
 
@@ -532,8 +533,7 @@ void LinSystem::assemble(bool rhsonly)
         j = s->idx[i];
         if (e[i] == NULL) { isempty[j] = true; continue; }
         spaces[j]->get_element_assembly_list(e[i], al+j);
-        // todo: neziskavat znova, pokud se element nezmenil
-
+        // TODO: don't retrieve this again, unless the element has changed
         spss[j]->set_active_element(e[i]);
         spss[j]->set_master_transform();
         refmap[j].set_active_element(e[i]);
@@ -618,14 +618,19 @@ void LinSystem::assemble(bool rhsonly)
       // assemble surface integrals now: loop through boundary edges of the element
       for (unsigned int edge = 0; edge < e0->nvert; edge++)
       {
-        if (!bnd[edge]) continue;
+          // we now determine this for each weakform, so we comment this out
+          // for now:
+        //if (!bnd[edge]) continue;
         marker = ep[edge].marker;
+
+
 
         // obtain the list of shape functions which are nonzero on this edge
         for (unsigned int i = 0; i < s->idx.size(); i++) {
           if (e[i] == NULL) continue;
           j = s->idx[i];
-          if ((nat[j] = (spaces[j]->bc_type_callback(marker) == BC_NATURAL)))
+          nat[j] = (spaces[j]->bc_type_callback(marker) == BC_NATURAL);
+          //if (nat[j])
             spaces[j]->get_edge_assembly_list(e[i], edge, al + j);
         }
 
@@ -634,11 +639,30 @@ void LinSystem::assemble(bool rhsonly)
         {
           WeakForm::BiFormSurf* bfs = s->bfsurf[ww];
           if (isempty[bfs->i] || isempty[bfs->j]) continue;
-          if (bfs->area != ANY && !wf->is_in_area(marker, bfs->area)) continue;
+          // now we determine whether to call the form depending on the "area"
+          // and the BC "marker" parameters:
+          int call_form = 0;
+          if (bfs->area == ANY_EDGE) {
+              // call the form on all element edges (both boundary and interior)
+              call_form = 1;
+          } else if (bnd[edge]) {
+              if (bfs->area == ANY_BOUNDARY) {
+                  // call the form on all domain boundary edges only
+                  call_form = 1;
+              } else if (wf->is_in_area(marker, bfs->area)) {
+                  // call the form on the domain boundary edges with the
+                  // correct marker only
+                  call_form = 1;
+              }
+          }
+          if (!call_form) continue;
+
+          // old conditions:
+          //if (bfs->area != ANY && !wf->is_in_area(marker, bfs->area)) continue;
           m = bfs->i;  fv = spss[m];  am = &al[m];
           n = bfs->j;  fu = pss[n];   an = &al[n];
 
-          if (!nat[m] || !nat[n]) continue;
+          //if (!nat[m] || !nat[n]) continue;
           ep[edge].base = trav.get_base();
           ep[edge].space_v = spaces[m];
           ep[edge].space_u = spaces[n];
@@ -651,7 +675,20 @@ void LinSystem::assemble(bool rhsonly)
             for (j = 0; j < an->cnt; j++)
             {
               fu->set_active_shape(an->idx[j]);
-              bi = eval_form(bfs, fu, fv, refmap+n, refmap+m, ep+edge) * an->coef[j] * am->coef[i];
+              /*
+              printf("edge=%d, i=%d, j=%d bnd[edge]=%d\n", edge,
+                      i, j, bnd[edge]);
+                      */
+              /*
+		printf("assembly: id=%d edge=%d marker=%d nodes=(%d, %d, %d, %d)\n",
+			e0->id, edge, e0->marker,
+			e0->vn[0]->id,
+			e0->vn[1]->id,
+			e0->vn[2]->id,
+			e0->vn[3]->id
+			);
+            */
+              bi = eval_form(bfs, fu, fv, refmap+n, refmap+m, &(ep[edge])) * an->coef[j] * am->coef[i];
               if (an->dof[j] >= 0) mat[i][j] = bi; else Dir[k] -= bi;
             }
           }
@@ -663,10 +700,26 @@ void LinSystem::assemble(bool rhsonly)
         {
           WeakForm::LiFormSurf* lfs = s->lfsurf[ww];
           if (isempty[lfs->i]) continue;
-          if (lfs->area != ANY && !wf->is_in_area(marker, lfs->area)) continue;
+          // now we determine whether to call the form depending on the "area"
+          // and the BC "marker" parameters:
+          int call_form = 0;
+          if (lfs->area == ANY_EDGE) {
+              // call the form on all element edges (both boundary and interior)
+              call_form = 1;
+          } else if (bnd[edge]) {
+              if (lfs->area == ANY_BOUNDARY) {
+                  // call the form on all domain boundary edges only
+                  call_form = 1;
+              } else if (wf->is_in_area(marker, lfs->area)) {
+                  // call the form on the domain boundary edges with the
+                  // correct marker only
+                  call_form = 1;
+              }
+          }
+          if (!call_form) continue;
           m = lfs->i;  fv = spss[m];  am = &al[m];
 
-          if (!nat[m]) continue;
+          //if (!nat[m]) continue;
           ep[edge].base = trav.get_base();
           ep[edge].space_v = spaces[m];
 
@@ -861,12 +914,14 @@ scalar LinSystem::eval_form(WeakForm::LiFormVol *lf, PrecalcShapeset *fv, RefMap
 
 
 // Actual evaluation of surface bilinear form (calculates integral)
-scalar LinSystem::eval_form(WeakForm::BiFormSurf *bf, PrecalcShapeset *fu, 
+scalar LinSystem::eval_form(WeakForm::BiFormSurf *bf, PrecalcShapeset *fu,
                             PrecalcShapeset *fv, RefMap *ru, RefMap *rv, EdgePos* ep)
 {
   // eval the form
   Quad2D* quad = fu->get_quad_2d();
+  assert(ep->edge < 5);
   int eo = quad->get_edge_points(ep->edge);
+  //printf("edge=%d, eo=%d\n", ep->edge, eo);
   double3* pt = quad->get_points(eo);
   int np = quad->get_num_points(eo);
 
@@ -891,8 +946,8 @@ scalar LinSystem::eval_form(WeakForm::BiFormSurf *bf, PrecalcShapeset *fu,
 
   ext->free(); delete ext;
   return 0.5 * res; // Edges are parameterized from 0 to 1 while integration weights
-                    // are defined in (-1, 1). Thus multiplying with 0.5 to correct 
-                    // the weights. 
+                    // are defined in (-1, 1). Thus multiplying with 0.5 to correct
+                    // the weights.
 }
 
 
@@ -925,8 +980,8 @@ scalar LinSystem::eval_form(WeakForm::LiFormSurf *lf, PrecalcShapeset *fv, RefMa
 
   ext->free(); delete ext;
   return 0.5 * res; // Edges are parametrized from 0 to 1 while integration weights
-                    // are defined in (-1, 1). Thus multiplying with 0.5 to correct 
-                    // the weights. 
+                    // are defined in (-1, 1). Thus multiplying with 0.5 to correct
+                    // the weights.
 }
 
 
@@ -954,8 +1009,16 @@ bool LinSystem::solve(int n, ...)
   // solve the system
   if (Vec != NULL) ::free(Vec);
   Vec = (scalar*) malloc(ndofs * sizeof(scalar));
+  //printf("solution matrix (%d):\n", ndofs);
+  //this->print_matrix();
   solver->solve(slv_ctx, ndofs, Ap, Ai, Ax, false, RHS, Vec);
   verbose("  (total solve time: %g sec)", end_time());
+  //printf("solution vector (%d):\n", ndofs);
+  /*
+  for (int i=0; i < ndofs; i++)
+      printf("%f ", Vec[i]);
+  printf("\n");
+  */
 
   // initialize the Solution classes
   begin_time();
@@ -1048,7 +1111,7 @@ void LinSystem::save_rhs_bin(const char* filename)
 
 //// order limitation and warning //////////////////////////////////////////////////////////////////
 
-PUBLIC_API void set_order_limit_table(int* tri_table, int* quad_table, int n)
+HERMES2D_API void set_order_limit_table(int* tri_table, int* quad_table, int n)
 {
   if (n < 24) error("Order limit tables must have at least 24 entries.");
   g_order_table_tri  = tri_table;
@@ -1056,7 +1119,7 @@ PUBLIC_API void set_order_limit_table(int* tri_table, int* quad_table, int n)
 }
 
 
-PUBLIC_API void update_limit_table(int mode)
+HERMES2D_API void update_limit_table(int mode)
 {
   g_quad_2d_std.set_mode(mode);
   g_max_order = g_quad_2d_std.get_max_order();
@@ -1065,7 +1128,7 @@ PUBLIC_API void update_limit_table(int mode)
 }
 
 
-PUBLIC_API void warn_order()
+HERMES2D_API void warn_order()
 {
   if (!warned_order && warn_integration)
   {

@@ -21,7 +21,7 @@
 class Mesh;
 
 
-class PUBLIC_API RefNonlinSystem : public NonlinSystem
+class HERMES2D_API RefNonlinSystem : public NonlinSystem
 {
 public:
 
@@ -172,6 +172,8 @@ public:
       ref_spaces = NULL;
     }
   }
+
+  Space* get_ref_space(int i) { return ref_spaces[i];}
 
 
 

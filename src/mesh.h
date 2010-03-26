@@ -33,7 +33,7 @@ struct MItem;
 ///      <li> TYPE_EDGE   -- edge node. Only stores edge marker and two element pointers.
 /// </ol>
 ///
-struct PUBLIC_API Node
+struct HERMES2D_API Node
 {
   int id;          ///< node id number
   unsigned ref:29; ///< the number of elements using the node
@@ -69,6 +69,14 @@ struct PUBLIC_API Node
 ///
 /// The element can be a triangle or a quad (nvert == 3 or nvert = 4), active or inactive.
 ///
+/// Vertex/node index number
+///        [2]
+///   (3)-------(2)
+///    |         |
+/// [3]|  quad.  |[1]
+///    |         |
+///   (0)-------(1)
+///        [0]
 /// Active elements are actual existing elements in the mesh, which take part in the
 /// computation. Inactive elements are those which have once been active, but were refined,
 /// ie., replaced by several other (smaller) son elements. The purpose of the union is the
@@ -78,7 +86,7 @@ struct PUBLIC_API Node
 /// If an element has curved edges, the member 'cm' points to an associated CurvMap structure,
 /// otherwise it is NULL.
 ///
-struct PUBLIC_API Element
+struct HERMES2D_API Element
 {
   int id;            ///< element id number
   unsigned nvert:30; ///< number of vertices (3 or 4)
@@ -87,8 +95,7 @@ struct PUBLIC_API Element
   int marker;        ///< element marker
   int userdata;     ///< arbitrary user-defined data
   int iro_cache;     ///< increase in integration order, see RefMap::calc_inv_ref_order()
-	Element* parent; ///< pointer to the element from which this arise
-
+  Element* parent; ///< element from which arose
 
   Node* vn[4];   ///< vertex node pointers
   union
@@ -136,7 +143,7 @@ struct PUBLIC_API Element
 ///
 ///
 ///
-class PUBLIC_API Mesh : public HashTable
+class HERMES2D_API Mesh : public HashTable
 {
 public:
 
@@ -260,7 +267,7 @@ public:
   void convert_to_triangles();
 
 protected:
-  PUBLIC_API_USED_TEMPLATE(Array<Element>);
+  HERMES2D_API_USED_TEMPLATE(Array<Element>);
   Array<Element> elements;
   int nbase, ntopvert;
   int nactive, ninitial;

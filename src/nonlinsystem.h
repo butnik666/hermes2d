@@ -17,6 +17,9 @@
 #define __HERMES2D_NONLINSYSTEM_H
 
 #include "matrix.h"
+#include "filter.h"
+#include "views/scalar_view.h"
+#include "views/order_view.h"
 #include "function.h"
 
 class Solution;
@@ -29,12 +32,14 @@ class MeshFunction;
 ///
 ///
 ///
-class PUBLIC_API NonlinSystem : public LinSystem 
+class HERMES2D_API NonlinSystem : public LinSystem
 {
 public:
 
   /// Initializes the class and sets zero initial coefficient vector.
   NonlinSystem(WeakForm* wf, Solver* solver);
+
+  virtual void free();
 
   /// Sets the initial coefficient vector so that it represents the given function(s).
   /// You can pass pointer(s) to Solution(s) or to a Filter(s).
@@ -45,6 +50,14 @@ public:
 
   void set_ic(MeshFunction* fn1, MeshFunction* fn2, Solution* result1, Solution* result2, int proj_norm = 1)
     {  set_ic_n(proj_norm, 2, fn1, fn2, result1, result2);  }
+
+  /// Sets the initial coefficient vector using an exact function.
+  void set_ic(scalar (*exactfn)(double x, double y, scalar& dx, scalar& dy),
+              Mesh* mesh, Solution* result, int proj_norm = 1)
+  {
+    result->set_exact(mesh, exactfn);
+    set_ic_n(proj_norm, 1, result, result);
+  }
 
   void set_ic_n(int proj_norm, int n, ...);
 
@@ -59,6 +72,17 @@ public:
 
   /// Performs one Newton iteration, stores the result in the given Solutions.
   bool solve(int n, ...);
+
+  /// Performs complete Newton's loop for one equation
+  bool solve_newton_1(Solution* u_prev, double newton_tol, int newton_max_iter,
+                      Filter* f1 = NULL, Filter* f2 = NULL, Filter* f3 = NULL);
+  /// Performs complete Newton's loop for two equations
+  bool solve_newton_2(Solution* u_prev_1, Solution* u_prev_2, double newton_tol, int newton_max_iter,
+                      Filter* f1 = NULL, Filter* f2 = NULL, Filter* f3 = NULL);
+  /// Performs complete Newton's loop for two equations
+  bool solve_newton_3(Solution* u_prev_1, Solution* u_prev_2, Solution* u_prev_3,
+                      double newton_tol, int newton_max_iter,
+                      Filter* f1 = NULL, Filter* f2 = NULL, Filter* f3 = NULL);
 
   /// returns the L2-norm of the residuum
   double get_residuum_l2_norm() const { return res_l2; }

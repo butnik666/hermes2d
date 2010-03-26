@@ -19,11 +19,11 @@
 //
 //  The following parameters can be changed:
 
-const int P_INIT = 0;             // Initial polynomial degree. NOTE: The meaning is different from 
+const int P_INIT = 0;             // Initial polynomial degree. NOTE: The meaning is different from
                                   // standard continuous elements in the space H1. Here, P_INIT refers
                                   // to the maximum poly order of the tangential component, and polynomials
                                   // of degree P_INIT + 1 are present in element interiors. P_INIT = 0
-                                  // is for Whitney elements. 
+                                  // is for Whitney elements.
 const double THRESHOLD = 0.3;     // This is a quantitative parameter of the adapt(...) function and
                                   // it has different meanings for various adaptive strategies (see below).
 const int STRATEGY = 1;           // Adaptive strategy:
@@ -35,7 +35,7 @@ const int STRATEGY = 1;           // Adaptive strategy:
                                   // STRATEGY = 2 ... refine all elements whose error is larger
                                   //   than THRESHOLD.
                                   // More adaptive strategies can be created in adapt_ortho_h1.cpp.
-const int ADAPT_TYPE = 1;         // Type of automatic adaptivity:
+const int ADAPT_TYPE = 0;         // Type of automatic adaptivity:
                                   // ADAPT_TYPE = 0 ... adaptive hp-FEM (default),
                                   // ADAPT_TYPE = 1 ... adaptive h-FEM,
                                   // ADAPT_TYPE = 2 ... adaptive p-FEM.
@@ -52,7 +52,7 @@ const int MESH_REGULARITY = -1;   // Maximum allowed level of hanging nodes:
                                   // their notoriously bad performance.
 const double ERR_STOP = 0.01;     // Stopping criterion for adaptivity (rel. error tolerance between the
                                   // fine mesh and coarse mesh solution in percent).
-const int NDOF_STOP = 50000;      // Adaptivity process stops when the number of degrees of freedom grows
+const int NDOF_STOP = 60000;      // Adaptivity process stops when the number of degrees of freedom grows
                                   // over this limit. This is to prevent h-adaptivity to go on forever.
 
 // problem constants
@@ -61,12 +61,12 @@ const double kappa  = 1.0;
 const double lambda = 1.0;
 
 // Bessel functions, exact solution,
-// and weak forms 
+// and weak forms
 #include "forms.cpp"
 
 // boundary conditions
 int bc_types(int marker)
-{ 
+{
   if (marker == 1 || marker == 6)
     return BC_ESSENTIAL; // perfect conductor
   else
