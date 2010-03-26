@@ -10,38 +10,35 @@
 class HERMES2D_API Neighbor
 {
 public:
-	Neighbor(Element* e, Solution* sln){
-		central_el = e;
-		sol = sln;
-		quad = sln->get_quad_2d();
-		mesh = sln->get_mesh();
-		sol->set_active_element(central_el);
-		active_order = sol->get_fn_order();
-		for(int i = 0;  i < max_n_trans; i++)
-		{
-			fn_values[i] = NULL;
-			fn_values_neighbor[i] = NULL;
-		}
-		n_neighbors = 0;
-	}
+
+	// constructor used for getting function values
+	Neighbor(Element* e, Solution* sln);
+
+	// constructor just for getting neighbors (now just theirs id)
+	Neighbor(Element* e, Mesh* mesh);
+
 	~Neighbor();
 
 	//set active edge and compute all needed informations from neighbors, edge is local number of the edge
 	void set_active_edge(int edge);
+
 	// number of neighbor elements on edge
 	int number_of_neighbs();
-	// return pseudo-order for use in getting integration points of order
-//	int get_edge_points(int i);
+
 	// return array of transformations of neighbor or central el.
 	int* get_transformations(int part_edge);
+
 	// return function values of neighbor at integration points
 	double* get_fn_values_neighbor(int part_edge);
+
 	// return function values of active at integration points
 	double* get_fn_values_central(int part_edge);
 
+	// return pointer to the vector of neighbors id.
+	std::vector<int>* get_neighbors();
 
 private:
-	const static int max_n_trans = 20;    //number of allowed transformations, see push_transform() in transform.h
+	const static int max_n_trans = 20;    //number of allowed transformations, see "push_transform" in transform.h
 
 	int n_neighbors; // number of neighbors
 	Quad2D* quad;
@@ -53,11 +50,14 @@ private:
 	int n_trans[max_n_trans];  // number of transformations for every neighbor;
 	int active_edge;			     // edge where we are searching for neighbors
 	int neighbor_edge;		   	// edge of the neighbor respective to active_edge
-	double* fn_values[max_n_trans]; //function values for active element
+	double* fn_values[max_n_trans]; // function values for active element
 	int np[max_n_trans];						// number of integration points for every neighbor
-	double* fn_values_neighbor[max_n_trans]; //function values for active element
-	int active_order; //order of active element
-	int neighbor_order; //order of active element
+	double* fn_values_neighbor[max_n_trans]; // function values for active element
+	int central_order; // order of central element
+	int neighbor_order; // order of neighbor element
+
+	// vector containing id's of all neighbors
+	std::vector<int> neighbors_id;
 
 	// way up for finding neighbor element, from smaller to larger
 	void finding_act_elem( Element* elem, int edge_num, int* orig_vertex_id, Node** road_vertices, int n_road_vertices);
@@ -80,10 +80,9 @@ private:
 	// fill function values of central and neighbor element
 	void set_fn_values(Trans_flag flag);
 
+	int solution_flag:1;  // if 1 then function values are computed.
 
 };
-
-
 
 
 #endif /* NEIGHBOR_H_ */

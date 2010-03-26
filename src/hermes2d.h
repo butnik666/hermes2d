@@ -38,6 +38,7 @@
 #include "refmap.h"
 #include "traverse.h"
 
+#include "neighbor.h"
 #include "weakform.h"
 #include "linsystem.h"
 #include "feproblem.h"
