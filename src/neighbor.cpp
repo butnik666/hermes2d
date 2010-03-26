@@ -219,8 +219,7 @@ void Neighbor::finding_act_elem( Node* vertex, int* par_vertex_id, int* road, in
 							n_trans[n_neighbors] = n_road + 1;
 
 							set_fn_values(H2D_WAY_DOWN);
-
-
+	
 /*							for(int k = 0; k <= n_road; k++) neighbs[*n_neighbs].transformations[k] = road[k];
 							int neighb_order = sln->get_fn_order();
 
@@ -231,6 +230,7 @@ void Neighbor::finding_act_elem( Node* vertex, int* par_vertex_id, int* road, in
 							// as on central element
 
 							set_correct_direction(parents[0], parents[1], i);
+
 
 /*							int test = 0;
 							int neighb_first_vertex = neighb->vn[neighb_edge]->id;
@@ -252,6 +252,7 @@ void Neighbor::finding_act_elem( Node* vertex, int* par_vertex_id, int* road, in
 
 				// raise the number of neighbors
 
+	
 				n_neighbors = n_neighbors++;
 
 					}
@@ -324,6 +325,7 @@ void Neighbor::set_fn_values(Trans_flag flag){
 			for(int i = 0; i < number_integ_points; i++) local_fn_values_n[i] = sol->get_fn_values()[i];
 			fn_values_neighbor[n_neighbors] = local_fn_values_n;
 
+	
 			//fill the central
 			sol->set_active_element(central_el);
 			eo = quad->get_edge_points(active_edge);
@@ -372,10 +374,10 @@ void Neighbor::set_correct_direction(int parent1, int parent2, int part_of_edge)
 		scalar local_fn_value = 0;
 
 //		for(int i = 0; i < np[n_neighbors]; i++) local_fn_values[i] = fn_values_neighbor[n_neighbors][i];
-		for (int i = 0; i < (np[n_neighbors] - 1) / 2; i++){
+		for(int i = 0; i < (np[n_neighbors]) / 2; i++){
 			local_fn_value = fn_values_neighbor[n_neighbors][i];
-			fn_values_neighbor[n_neighbors][i] = fn_values_neighbor[n_neighbors][np[n_neighbors] - i];
-			fn_values_neighbor[n_neighbors][np[n_neighbors] - i] = local_fn_value;
+			fn_values_neighbor[n_neighbors][i] = fn_values_neighbor[n_neighbors][np[n_neighbors] - i - 1];
+			fn_values_neighbor[n_neighbors][np[n_neighbors] - i - 1] = local_fn_value;
 		}
 	}
 };
