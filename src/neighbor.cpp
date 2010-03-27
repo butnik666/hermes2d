@@ -219,19 +219,19 @@ void Neighbor::finding_act_elem( Element* elem, int edge_num, int* orig_vertex_i
 							n = mesh->peek_vertex_node(road_vertices[j]->id, p2);
 							transformations[n_neighbors][n_road_vertices - j] = neighbor_edge;
 //							sol->push_transform(neighbor_edge);
-							p1 = n->id;
+							p1 = road_vertices[j]->id;
 						}
 						else{
 								if(n->id == road_vertices[j-1]->id){
 									transformations[n_neighbors][n_road_vertices - j] = (neighbor_edge + 1) % neighb_el->nvert;
 //									sol->push_transform((neighbor_edge + 1) % neighb_el->nvert);
-									p2 = n->id;
+									p2 = road_vertices[j]->id;
 								}
 								else{
 									n = mesh->peek_vertex_node(road_vertices[j]->id, p2);
 									transformations[n_neighbors][n_road_vertices - j] = neighbor_edge;
 //									sol->push_transform(neighbor_edge);
-									p1 = n->id;
+									p1 = road_vertices[j]->id;
 								}
 						}
 					}
@@ -498,7 +498,7 @@ void Neighbor::set_correct_direction(int parent1, int parent2, int part_of_edge)
 	if (test == 1)
 	{
 
-		double local_fn_value = 0;
+		scalar local_fn_value = 0;
 
 		for (int i = 0; i < np[n_neighbors] / 2; i++){
 			local_fn_value = fn_values_neighbor[n_neighbors][i];
@@ -547,11 +547,11 @@ int* Neighbor::get_transformations(int part_edge)
 	return transformations[part_edge];
 };
 
-double* Neighbor::get_fn_values_central(int part_edge)
+scalar* Neighbor::get_fn_values_central(int part_edge)
 {
 	return fn_values[part_edge];
 };
-double* Neighbor::get_fn_values_neighbor(int part_edge)
+scalar* Neighbor::get_fn_values_neighbor(int part_edge)
 {
 	return fn_values_neighbor[part_edge];
 };
