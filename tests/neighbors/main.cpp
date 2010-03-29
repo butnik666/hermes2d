@@ -24,10 +24,12 @@ int main(int argc, char* argv[])
 	mesh.refine_element(9);
 	mesh.refine_element(15);
 	mesh.refine_element(17);
+	mesh.refine_element(24);
+	mesh.refine_element(28);
 
   // display the mesh
-	// MeshView mview("neighbors_test", 100, 100, 500, 500);
-	// mview.show(&mesh);
+//	 MeshView mview("neighbors_test", 100, 100, 500, 500);
+//	 mview.show(&mesh);
 
 
 	Element* e = NULL;
@@ -40,14 +42,14 @@ int main(int argc, char* argv[])
 	// in his own vector of his neighbors id the id of active element is searched. Failure of the test is if
 	// is no found.
 
-	e = mesh.get_element(27);
+	e = mesh.get_element(35);
 	neighb = new Neighbor(e, &mesh);
 	std::cout << e->vn[0]->id<<" "<< e->vn[1]->id<<" "<< e->vn[2]->id<<"\n";
 	std::cout << e->en[1]->p1 <<" "<< e->en[1]->p2 << "\n";
 
 	neighb->set_active_edge(1);
+getchar();
 	e = NULL;
-	getchar();
 	for_all_active_elements(e, &mesh)
 	{
 		neighb = new Neighbor(e, &mesh);
@@ -55,8 +57,8 @@ int main(int argc, char* argv[])
 			if(e->en[i]->bnd == 0)
 				neighb->set_active_edge(i);
 		}
-//		neighbors_id = neighb->get_neighbors();
-//		all_neighbors[e->id] = *neighbors_id;
+		neighbors_id = neighb->get_neighbors();
+		all_neighbors[e->id] = *neighbors_id;
 		delete neighb;
 	}
 

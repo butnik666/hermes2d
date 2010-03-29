@@ -204,7 +204,11 @@ void Neighbor::finding_act_elem( Element* elem, int edge_num, int* orig_vertex_i
 
 				//not sure about it !!!!!!!!!!!!!!!
 				n_trans[n_neighbors] = n_road_vertices;
+				for(int k = 0 ; k < n_road_vertices; k++)
+					printf("vertexy po ceste: %d ", road_vertices[k]->id);
+				printf("\n");
 
+				printf("pocet %d ", n_road_vertices);
 				// go threw between elements and set correct transformation
 				for(int j = n_road_vertices; j > 0; j-- ){
 					if(road_vertices[j] == NULL){
@@ -212,6 +216,7 @@ void Neighbor::finding_act_elem( Element* elem, int edge_num, int* orig_vertex_i
 							continue;
 					}
 					else{
+						printf("p1: %d p2: %d \n", p1, p2);
 						n = mesh->peek_vertex_node(road_vertices[j]->id, p1);
 						if(n == NULL){
 							n = mesh->peek_vertex_node(road_vertices[j]->id, p2);
