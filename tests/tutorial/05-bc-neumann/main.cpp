@@ -88,7 +88,7 @@ int main(int argc, char* argv[])
     sys.get_solution_vector(sol_vector, n_dof);
     printf("n_dof = %d\n", n_dof);
     double sum = 0;
-    for (int i=0; i < n_dof; i++) sum += sol_vector[i];
+    for (int i=0; i < n_dof; i++) sum = sum + sol_vector[i];
     printf("coefficient sum = %g\n", sum);
 
     // Actual test. The values of 'sum' depend on the

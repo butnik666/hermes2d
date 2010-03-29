@@ -72,14 +72,14 @@ void Neighbor::set_active_edge(int edge)
 
 	active_edge = edge;
 
-	verbose("central element: %d \n\n\n", central_el->id);
+	debug_log("central element: %d \n\n\n", central_el->id);
 	if (central_el->en[active_edge]->bnd == 0)
 	{
 		neighb_el = central_el->get_neighbor(active_edge);
 		// test if on the other side of the edge is active element
 		if (neighb_el != NULL)
 		{
-			printf("active neighbor el: %d \n", neighb_el->id); /////////////////////
+			debug_log("active neighbor el: %d \n", neighb_el->id); /////////////////////
 			for (int j = 0; j < neighb_el->nvert; j++)
 			{
 				if (central_el->en[active_edge] == neighb_el->en[j])
@@ -98,7 +98,6 @@ void Neighbor::set_active_edge(int edge)
 
 					// raise the number of neighbors
 					n_neighbors = n_neighbors++;
-					verbose("neighbor elem: %d \n", neighb_el->id);
 
 					// add neighbor id to neighbors_id
 					neighbors_id.push_back(neighb_el->id);
@@ -138,7 +137,7 @@ void Neighbor::set_active_edge(int edge)
 
 				finding_act_elem( vertex, orig_vertex_id, road, n_road,	active_edge, central_el->nvert);
 
-				verbose("number of neighbors: %d \n", n_neighbors);
+				debug_log("number of neighbors: %d \n", n_neighbors);
 			}
 		}
 	}
@@ -194,7 +193,7 @@ void Neighbor::finding_act_elem( Element* elem, int edge_num, int* orig_vertex_i
 			if ((edge->elem[i] != NULL) && (edge->elem[i]->active == 1)){
 
 				//getting to correct edge
-				verbose("way up neighb: %d \n", edge->elem[i]->id);
+				debug_log("way up neighbor: %d \n", edge->elem[i]->id);
 				neighb_el = edge->elem[i];
 				neighbor_edge = -1;
 				for(int j = 0; j < neighb_el->nvert; j++)
@@ -207,10 +206,9 @@ void Neighbor::finding_act_elem( Element* elem, int edge_num, int* orig_vertex_i
 				//not sure about it !!!!!!!!!!!!!!!
 				n_trans[n_neighbors] = n_road_vertices;
 				for(int k = 0 ; k < n_road_vertices; k++)
-					printf("vertexy po ceste: %d ", road_vertices[k]->id);
-				printf("\n");
+					debug_log("vertices on the way: %d ", road_vertices[k]->id);
+				debug_log("\n");
 
-				printf("pocet %d ", n_road_vertices);
 				// go threw between elements and set correct transformation
 				for(int j = n_road_vertices; j > 0; j-- ){
 					if(road_vertices[j] == NULL){
@@ -218,7 +216,6 @@ void Neighbor::finding_act_elem( Element* elem, int edge_num, int* orig_vertex_i
 							continue;
 					}
 					else{
-						printf("p1: %d p2: %d \n", p1, p2);
 						n = mesh->peek_vertex_node(road_vertices[j]->id, p1);
 						if(n == NULL){
 							n = mesh->peek_vertex_node(road_vertices[j]->id, p2);
@@ -320,7 +317,7 @@ void Neighbor::finding_act_elem( Node* vertex, int* par_vertex_id, int* road, in
 				if (edge->elem[j] != NULL)
 					if (edge->elem[j]->active == 1){
 
- 						  verbose("way down neighb: %d \n", edge->elem[j]->id);
+						  debug_log("way down neighbor: %d \n", edge->elem[j]->id);
 							neighb_el = mesh->get_element(edge->elem[j]->id);
 
 							// getting to correct edge

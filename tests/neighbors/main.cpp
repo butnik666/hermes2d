@@ -72,5 +72,6 @@ int main(int argc, char* argv[])
 	}
 
   // if you return this, the test will succeed:
-  return H2D_ERROR_SUCCESS;
+  printf("Success! \n");
+	return H2D_ERROR_SUCCESS;
 }
