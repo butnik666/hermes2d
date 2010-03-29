@@ -120,6 +120,7 @@ void Neighbor::set_active_edge(int edge)
 
 				Node** road_vertices;
 				road_vertices = new Node*[max_n_trans];
+
 				int n_road_vertices = 0; // number of used vertices
 
 				for (int j = 0; j < max_n_trans; j++)
@@ -136,6 +137,7 @@ void Neighbor::set_active_edge(int edge)
 				int n_road = 0; //number of used transformations
 
 				finding_act_elem( vertex, orig_vertex_id, road, n_road,	active_edge, central_el->nvert);
+
 				verbose("number of neighbors: %d \n", n_neighbors);
 			}
 		}
@@ -222,19 +224,19 @@ void Neighbor::finding_act_elem( Element* elem, int edge_num, int* orig_vertex_i
 							n = mesh->peek_vertex_node(road_vertices[j]->id, p2);
 							transformations[n_neighbors][n_road_vertices - j] = neighbor_edge;
 //							sol->push_transform(neighbor_edge);
-							p1 = n->id;
+							p1 = road_vertices[j]->id;
 						}
 						else{
 								if(n->id == road_vertices[j-1]->id){
 									transformations[n_neighbors][n_road_vertices - j] = (neighbor_edge + 1) % neighb_el->nvert;
 //									sol->push_transform((neighbor_edge + 1) % neighb_el->nvert);
-									p2 = n->id;
+									p2 = road_vertices[j]->id;
 								}
 								else{
 									n = mesh->peek_vertex_node(road_vertices[j]->id, p2);
 									transformations[n_neighbors][n_road_vertices - j] = neighbor_edge;
 //									sol->push_transform(neighbor_edge);
-									p1 = n->id;
+									p1 = road_vertices[j]->id;
 								}
 						}
 					}
@@ -346,7 +348,7 @@ void Neighbor::finding_act_elem( Node* vertex, int* par_vertex_id, int* road, in
 
 							// add neighbor id to neighbors_id
 							neighbors_id.push_back(neighb_el->id);
-					}
+							}
 			}
 	}
 };
@@ -371,8 +373,8 @@ void Neighbor::set_fn_values(Trans_flag flag){
 				int eo = quad->get_edge_points(neighbor_edge);
 				number_integ_points = quad->get_num_points(eo);
 
-				double* local_fn_values_n = new double[number_integ_points];
-				double* local_fn_values_c = new double[number_integ_points];
+				scalar* local_fn_values_c = new scalar[number_integ_points];
+				scalar* local_fn_values_n = new scalar[number_integ_points];
 
 				// fill function values of neighbor
 				sol->set_quad_order(eo);
@@ -393,18 +395,20 @@ void Neighbor::set_fn_values(Trans_flag flag){
 			{
 			sol->set_active_element(neighb_el);
 			neighbor_order = sol->get_fn_order();
+
 			int max_order = std::max(central_order, neighbor_order);
 
 			// now it takes the "original" max order
 			int eo = quad->get_edge_points(neighbor_edge);
 			number_integ_points = quad->get_num_points(eo);
 
-			double* local_fn_values_c = new double[number_integ_points];
-			double* local_fn_values_n = new double[number_integ_points];
+			scalar* local_fn_values_c = new scalar[number_integ_points];
+			scalar* local_fn_values_n = new scalar[number_integ_points];
 
 			// fill function values of neighbor
 			sol->set_quad_order(eo);
-			for(int i = 0; i < number_integ_points ; i++) local_fn_values_n[i] = sol->get_fn_values()[i];
+			for(int i = 0; i < number_integ_points; i++) local_fn_values_n[i] = sol->get_fn_values()[i];
+
 			fn_values_neighbor[n_neighbors] = local_fn_values_n;
 
 			sol->set_active_element(central_el);
@@ -416,7 +420,9 @@ void Neighbor::set_fn_values(Trans_flag flag){
 			//fill the central
 			eo = quad->get_edge_points(active_edge);
 			sol->set_quad_order(eo);
-			for(int i = 0; i < number_integ_points ; i++) local_fn_values_c[i] = sol->get_fn_values()[i];
+
+			for(int i = 0; i < number_integ_points; i++) local_fn_values_c[i] = sol->get_fn_values()[i];
+
 			fn_values[n_neighbors] = local_fn_values_c;
 
 			break;
@@ -431,26 +437,29 @@ void Neighbor::set_fn_values(Trans_flag flag){
 			}
 
 			neighbor_order = sol->get_fn_order();
+
 			int max_order = std::max(central_order, neighbor_order);
 
 			// now it takes the "original" max order
 			int eo = quad->get_edge_points(neighbor_edge);
 			number_integ_points = quad->get_num_points(eo);
 
-			double* local_fn_values_c = new double[number_integ_points];
-			double* local_fn_values_n = new double[number_integ_points];
+			scalar* local_fn_values_c = new scalar[number_integ_points];
+			scalar* local_fn_values_n = new scalar[number_integ_points];
 
 			// fill function values of neighbor
 			sol->set_quad_order(eo);
 
-			for(int i = 0; i < number_integ_points ; i++) local_fn_values_n[i] = sol->get_fn_values()[i];
+			for(int i = 0; i < number_integ_points; i++) local_fn_values_n[i] = sol->get_fn_values()[i];
 			fn_values_neighbor[n_neighbors] = local_fn_values_n;
 
 			//fill the central
 			sol->set_active_element(central_el);
 			eo = quad->get_edge_points(active_edge);
 			sol->set_quad_order(eo);
-			for(int i = 0; i < number_integ_points ; i++) local_fn_values_c[i] = sol->get_fn_values()[i];
+
+			for(int i = 0; i < number_integ_points; i++) local_fn_values_c[i] = sol->get_fn_values()[i];
+
 			fn_values[n_neighbors] = local_fn_values_c;
 
 			break;
@@ -458,6 +467,7 @@ void Neighbor::set_fn_values(Trans_flag flag){
 		default:
 			error("wasn't find scheme for getting correctly transformed function values");
 	}
+
 
 
 	// test if number of function values was assigned
@@ -470,6 +480,7 @@ void Neighbor::set_fn_values(Trans_flag flag){
 	sol->reset_transform();
 
 };
+
 
 // correct direction, means the orientation of function values on neighbor has to be same
 // as on central element
@@ -491,7 +502,8 @@ void Neighbor::set_correct_direction(int parent1, int parent2, int part_of_edge)
 
 	if (test == 1)
 	{
-		double local_fn_value = 0;
+
+		scalar local_fn_value = 0;
 
 		for (int i = 0; i < np[n_neighbors] / 2; i++){
 			local_fn_value = fn_values_neighbor[n_neighbors][i];
@@ -514,6 +526,7 @@ void Neighbor::clean_all()
 	{
 		n_trans[i] = 0;
 		np[i] = 0;
+
 		if(fn_values[i] != NULL)
 			delete[] fn_values[i];
 		if(fn_values_neighbor[i] != NULL)
@@ -528,7 +541,6 @@ void Neighbor::clean_all()
 };
 
 
-
 int Neighbor::number_of_neighbs()
 {
 	if(n_neighbors == 0) error("called before setting common edge");
@@ -540,11 +552,11 @@ int* Neighbor::get_transformations(int part_edge)
 	return transformations[part_edge];
 };
 
-double* Neighbor::get_fn_values_central(int part_edge)
+scalar* Neighbor::get_fn_values_central(int part_edge)
 {
 	return fn_values[part_edge];
 };
-double* Neighbor::get_fn_values_neighbor(int part_edge)
+scalar* Neighbor::get_fn_values_neighbor(int part_edge)
 {
 	return fn_values_neighbor[part_edge];
 };

@@ -549,7 +549,6 @@ void Mesh::refine_quad(Element* e, int refinement)
 	  if(sons[i] != NULL)
 		  sons[i]->parent = e;
 
-
   // copy son pointers (could not have been done earlier because of the union)
   memcpy(e->sons, sons, sizeof(sons));
 }

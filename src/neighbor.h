@@ -29,10 +29,10 @@ public:
 	int* get_transformations(int part_edge);
 
 	// return function values of neighbor at integration points
-	double* get_fn_values_neighbor(int part_edge);
+	scalar* get_fn_values_neighbor(int part_edge);
 
 	// return function values of active at integration points
-	double* get_fn_values_central(int part_edge);
+	scalar* get_fn_values_central(int part_edge);
 
 	// return pointer to the vector of neighbors id.
 	std::vector<int>* get_neighbors();
@@ -50,9 +50,9 @@ private:
 	int n_trans[max_n_trans];  // number of transformations for every neighbor;
 	int active_edge;			     // edge where we are searching for neighbors
 	int neighbor_edge;		   	// edge of the neighbor respective to active_edge
-	double* fn_values[max_n_trans]; // function values for active element
+	scalar* fn_values[max_n_trans]; // function values for active element
 	int np[max_n_trans];						// number of integration points for every neighbor
-	double* fn_values_neighbor[max_n_trans]; // function values for active element
+	scalar* fn_values_neighbor[max_n_trans]; // function values for active element
 	int central_order; // order of central element
 	int neighbor_order; // order of neighbor element
 
@@ -83,6 +83,5 @@ private:
 	int solution_flag:1;  // if 1 then function values are computed.
 
 };
-
 
 #endif /* NEIGHBOR_H_ */
