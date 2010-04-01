@@ -128,7 +128,6 @@ void PrecalcShapeset::precalculate(int order, int mask)
   check_order(quad, order);
   int np = quad->get_num_points(order);
   double3* pt = quad->get_points(order);
-
   int oldmask = (cur_node != NULL) ? cur_node->mask : 0;
   int newmask = mask | oldmask;
   Node* node = new_node(newmask, np);

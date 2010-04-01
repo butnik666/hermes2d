@@ -80,7 +80,7 @@ private:
 	// fill function values of central and neighbor element
 	void set_fn_values(Trans_flag flag);
 
-	int solution_flag:1;  // if 1 then function values are computed.
+	int solution_flag;  // if 1 then function values are computed.
 
 };
 

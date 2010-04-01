@@ -14,6 +14,7 @@ Neighbor::Neighbor(Element* e, Solution* sln){
 	}
 	n_neighbors = 0;
 	neighbors_id.reserve(20 * e->nvert);
+	solution_flag = 1;
 };
 
 Neighbor::Neighbor(Element* e, Mesh* given_mesh)
@@ -79,7 +80,7 @@ void Neighbor::set_active_edge(int edge)
 		// test if on the other side of the edge is active element
 		if (neighb_el != NULL)
 		{
-			debug_log("active neighbor el: %d \n", neighb_el->id); /////////////////////
+			debug_log("active neighbor el: %d \n", neighb_el->id);
 			for (int j = 0; j < neighb_el->nvert; j++)
 			{
 				if (central_el->en[active_edge] == neighb_el->en[j])
@@ -366,8 +367,7 @@ void Neighbor::set_fn_values(Trans_flag flag){
 				neighbor_order = sol->get_fn_order();
 				int max_order = std::max(central_order, neighbor_order);
 
-				// now it takes the "original" max order
-				int eo = quad->get_edge_points(neighbor_edge);
+				int eo = quad->get_edge_points(neighbor_edge, max_order);
 				number_integ_points = quad->get_num_points(eo);
 
 				scalar* local_fn_values_c = new scalar[number_integ_points];
@@ -381,7 +381,7 @@ void Neighbor::set_fn_values(Trans_flag flag){
 
 				//fill the central
 				sol->set_active_element(central_el);
-				eo = quad->get_edge_points(active_edge);
+				eo = quad->get_edge_points(active_edge, max_order);
 				sol->set_quad_order(eo);
 				for(int i = 0; i < number_integ_points ; i++) local_fn_values_c[i] = sol->get_fn_values()[i];
 				fn_values[n_neighbors] = local_fn_values_c;
@@ -395,8 +395,7 @@ void Neighbor::set_fn_values(Trans_flag flag){
 
 			int max_order = std::max(central_order, neighbor_order);
 
-			// now it takes the "original" max order
-			int eo = quad->get_edge_points(neighbor_edge);
+			int eo = quad->get_edge_points(neighbor_edge, max_order);
 			number_integ_points = quad->get_num_points(eo);
 
 			scalar* local_fn_values_c = new scalar[number_integ_points];
@@ -415,7 +414,7 @@ void Neighbor::set_fn_values(Trans_flag flag){
 				sol->push_transform(transformations[n_neighbors][i]);
 			}
 			//fill the central
-			eo = quad->get_edge_points(active_edge);
+			eo = quad->get_edge_points(active_edge, max_order);
 			sol->set_quad_order(eo);
 
 			for(int i = 0; i < number_integ_points; i++) local_fn_values_c[i] = sol->get_fn_values()[i];
@@ -437,8 +436,7 @@ void Neighbor::set_fn_values(Trans_flag flag){
 
 			int max_order = std::max(central_order, neighbor_order);
 
-			// now it takes the "original" max order
-			int eo = quad->get_edge_points(neighbor_edge);
+			int eo = quad->get_edge_points(neighbor_edge, max_order);
 			number_integ_points = quad->get_num_points(eo);
 
 			scalar* local_fn_values_c = new scalar[number_integ_points];
@@ -452,7 +450,7 @@ void Neighbor::set_fn_values(Trans_flag flag){
 
 			//fill the central
 			sol->set_active_element(central_el);
-			eo = quad->get_edge_points(active_edge);
+			eo = quad->get_edge_points(active_edge, max_order);
 			sol->set_quad_order(eo);
 
 			for(int i = 0; i < number_integ_points; i++) local_fn_values_c[i] = sol->get_fn_values()[i];
