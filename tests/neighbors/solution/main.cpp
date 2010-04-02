@@ -8,7 +8,6 @@
 #define H2D_ERROR_SUCCESS   0
 #define H2D_ERROR_FAILURE  -1
 
-
 const double NEIGHBOR_TRASHOLD = 1e-010;
 
 bool equal_double(double value, double compare_value)
@@ -28,7 +27,6 @@ const int P_INIT = 9;
 // projected function
 double F(double x, double y)
 {
-//	return 1;
   return 2*(x - 0.5)*(x - 0.5) + 6*(y + 0.7)*(y + 0.7) - 36;
 }
 
@@ -45,7 +43,7 @@ Scalar linear_form(int n, double *wt, Func<Real> *v, Geom<Real> *e, ExtData<Scal
 {
   Scalar result = 0;
   for (int i = 0; i < n; i++)
-    result += wt[i] * (( 2*pow(e->x[i] - 0.5, 2) + 6 * pow(e->y[i] + 0.7, 2) - 25) * v->val[i]);  //( 2*pow(e->x[i] - 0.5, 2) + 6 * pow(e->y[i] + 0.7, 2) - 25)
+    result += wt[i] * (( 2*pow(e->x[i] - 0.5, 2) + 6 * pow(e->y[i] + 0.7, 2) - 25) * v->val[i]);
   return result;
 }
 
@@ -143,6 +141,7 @@ int main(int argc, char* argv[])
   				fn_central = neighb->get_fn_values_central(j);
   				fn_neighbor = neighb->get_fn_values_neighbor(j);
 					n_integ_points = neighb->get_n_integ_points(j);
+
 					for(int k = 0; k < n_integ_points; k++)
 					{
 						test = equal_double(fn_central[k], fn_neighbor[k]);
