@@ -34,6 +34,9 @@ public:
 	// return function values of active at integration points
 	scalar* get_fn_values_central(int part_edge);
 
+	// return number of integration points;
+	int get_n_integ_points(int part_edge);
+
 	// return pointer to the vector of neighbors id.
 	std::vector<int>* get_neighbors();
 

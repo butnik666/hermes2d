@@ -556,8 +556,16 @@ scalar* Neighbor::get_fn_values_neighbor(int part_edge)
 	return fn_values_neighbor[part_edge];
 };
 
+
+int Neighbor::get_n_integ_points(int part_edge)
+{
+	return np[part_edge];
+};
+
+
 std::vector<int>* Neighbor::get_neighbors()
 {
 	return &neighbors_id;
 };
+
 
