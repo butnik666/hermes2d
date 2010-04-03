@@ -1,7 +1,7 @@
-project(neighbors)
+project(neighbors-mesh)
 
 add_executable(${PROJECT_NAME} main.cpp)
-include (../CMake.common)
+include (../../CMake.common)
 
 set(BIN ${PROJECT_BINARY_DIR}/${PROJECT_NAME})
-add_test(quadrature-1 ${BIN})
+add_test(neighbors-1 ${BIN})
