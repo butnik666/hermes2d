@@ -92,8 +92,8 @@ void Neighbor::set_active_edge(int edge)
 						set_fn_values(H2D_NO_TRANSF);
 
 						// set same direction as central element
-						int p1 = central_el->vn[neighbor_edge]->id;
-						int p2 = central_el->vn[(neighbor_edge + 1) % central_el->nvert]->id;
+						int p1 = central_el->vn[active_edge]->id;
+						int p2 = central_el->vn[(active_edge + 1) % central_el->nvert]->id;
 						set_correct_direction(p1, p2, 0);
 					}
 
@@ -164,6 +164,9 @@ void Neighbor::finding_act_elem( Element* elem, int edge_num, int* orig_vertex_i
 	// order parents in direction of parent element (needed for transformation of solution)
 	p1 = elem->vn[edge_num]->id;
 	p2 = elem->vn[(edge_num + 1) % elem->nvert]->id;
+	
+	int id_of_par_orient_1 = p1;
+	int id_of_par_orient_2 = p2;
 
 	// find if between parents p1 and p2 is active edge (is used by neighbor element)
 	edge = mesh->peek_edge_node(p1, p2);
@@ -171,19 +174,19 @@ void Neighbor::finding_act_elem( Element* elem, int edge_num, int* orig_vertex_i
 	// When we are on parent, we take middle vertex on the edge and add it to road_vertices. This is for consequent transformation of solution
 	// on neighbor element.
 	vertex = mesh->peek_vertex_node(p1, p2);
-
-	if (n_road_vertices == 0){
-		road_vertices[n_road_vertices] = vertex;
-		n_road_vertices = n_road_vertices++;
-	}
-	else
-		if(road_vertices[n_road_vertices - 1]->id != vertex->id){
+	if(vertex != NULL){
+		if (n_road_vertices == 0){
 			road_vertices[n_road_vertices] = vertex;
 			n_road_vertices = n_road_vertices++;
 		}
-
-	if (edge == NULL)
-	{
+		else
+			if(road_vertices[n_road_vertices - 1]->id != vertex->id){
+				road_vertices[n_road_vertices] = vertex;
+				n_road_vertices = n_road_vertices++;
+			}
+	}
+	
+	if ((edge == NULL) || (central_el->en[edge_num]->id == edge->id)){
 		finding_act_elem(elem->parent, edge_num, orig_vertex_id, road_vertices, n_road_vertices);
 	}
 	else
@@ -213,26 +216,26 @@ void Neighbor::finding_act_elem( Element* elem, int edge_num, int* orig_vertex_i
 				// go threw between elements and set correct transformation
 				for(int j = n_road_vertices; j > 0; j-- ){
 					if(road_vertices[j] == NULL){
-						if(j > 0)
+//						if(j > 0)
 							continue;
 					}
 					else{
 						n = mesh->peek_vertex_node(road_vertices[j]->id, p1);
 						if(n == NULL){
 							n = mesh->peek_vertex_node(road_vertices[j]->id, p2);
-							transformations[n_neighbors][n_road_vertices - j] = neighbor_edge;
+							transformations[n_neighbors][n_road_vertices - j - 1] = neighbor_edge;
 //							sol->push_transform(neighbor_edge);
 							p1 = road_vertices[j]->id;
 						}
 						else{
 								if(n->id == road_vertices[j-1]->id){
-									transformations[n_neighbors][n_road_vertices - j] = (neighbor_edge + 1) % neighb_el->nvert;
+									transformations[n_neighbors][n_road_vertices - j - 1] = (neighbor_edge + 1) % neighb_el->nvert;
 //									sol->push_transform((neighbor_edge + 1) % neighb_el->nvert);
 									p2 = road_vertices[j]->id;
 								}
 								else{
 									n = mesh->peek_vertex_node(road_vertices[j]->id, p2);
-									transformations[n_neighbors][n_road_vertices - j] = neighbor_edge;
+									transformations[n_neighbors][n_road_vertices - j - 1] = neighbor_edge;
 //									sol->push_transform(neighbor_edge);
 									p1 = road_vertices[j]->id;
 								}
@@ -246,11 +249,11 @@ void Neighbor::finding_act_elem( Element* elem, int edge_num, int* orig_vertex_i
 					test = 1;
 
 				if(test == 1){
-					transformations[n_neighbors][n_road_vertices] = neighbor_edge;
+					transformations[n_neighbors][n_road_vertices - 1] = neighbor_edge;
 //					sln->push_transform(neighbor_edge);
 				}
 				else{
-					transformations[n_neighbors][n_road_vertices] = (neighbor_edge + 1) % neighb_el->nvert;
+					transformations[n_neighbors][n_road_vertices - 1] = (neighbor_edge + 1) % neighb_el->nvert;
 //					sln->push_transform((neighbor_edge + 1) % neighb_el->nvert);
 				}
 
@@ -259,7 +262,7 @@ void Neighbor::finding_act_elem( Element* elem, int edge_num, int* orig_vertex_i
 					set_fn_values(H2D_WAY_UP);
 
 					// set same direction as central element
-					set_correct_direction(p1, p2, i);
+					set_correct_direction(id_of_par_orient_1, id_of_par_orient_2, i);
 				}
 				// raise the number of neighbors
 				n_neighbors = n_neighbors++;
@@ -270,7 +273,7 @@ void Neighbor::finding_act_elem( Element* elem, int edge_num, int* orig_vertex_i
 		}
 };
 
-/*! \brief On active edge we have more neighbors. Give us information from all neighbors.
+/*! \brief On active edge we have more neighbors. Gives us information from all neighbors.
  *
  *	We use recurrence in this way. In every step we take middle vertex of the edge (starting with active edge). This vertex split the edge
  *	on two parts. On every part (an edge) we test if the new edge is active. If not, the middle vertex is found and the method is called
@@ -308,8 +311,8 @@ void Neighbor::finding_act_elem( Node* vertex, int* par_vertex_id, int* road, in
 				if(i == 0) par_vertex_id[1] = son;
 				else par_vertex_id[0] = son;
 
-				n_road = n_road++;
-				finding_act_elem( n, par_vertex_id, road, n_road, use_edge, n_vert);
+				int n_road_next = n_road + 1;
+				finding_act_elem( n, par_vertex_id, road, n_road_next, use_edge, n_vert);
 			}
 		} else
 			//test if on one of sides is active element
