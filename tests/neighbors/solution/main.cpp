@@ -9,7 +9,7 @@
 #define H2D_ERROR_FAILURE  -1
 
 
-const double NEIGHBOR_TRASHOLD = 1e-07;
+const double NEIGHBOR_TRASHOLD = 1e-010;
 
 bool equal_double(double value, double compare_value)
 {
@@ -80,15 +80,21 @@ int main(int argc, char* argv[])
 //   mview.show(&mesh);
 
   // initialize the shapeset and the cache
-  L2Shapeset shapeset;
+  H1Shapeset shapeset;
   PrecalcShapeset pss(&shapeset);
 
   // create the L2 space
-  L2Space space(&mesh, &shapeset);
+  H1Space space(&mesh, &shapeset);
   space.set_bc_types(bc_types);
 
   // set uniform polynomial degrees
-	 space.set_uniform_order(P_INIT);
+//	 space.set_uniform_order(P_INIT);
+  Element* e = NULL;
+  int order = 1;
+	 for_all_active_elements(e, &mesh){
+		 space.set_element_order(e->id, order);
+		 order = order < 9 ? order + 1 : 1;
+	 }
 
 	// enumerate basis functions
   space.assign_dofs();
@@ -117,7 +123,6 @@ int main(int argc, char* argv[])
 
 
   // begin of test
-	Element* e;
   Neighbor* neighb = NULL;
   int n_neighbors = 0;
   scalar* fn_central = NULL;
@@ -144,7 +149,7 @@ int main(int argc, char* argv[])
 						if(test == false)
 						{
 							for(int l = 0; l < n_integ_points; l++)
-								debug_log("fn_central and fn_neighbor[%d]: %f, %f", l, fn_central[l], fn_neighbor[l]);	
+								debug_log("fn_central and fn_neighbor[%d]: %f, %f", l, fn_central[l], fn_neighbor[l]);
 							printf("failure! \n");
 							return H2D_ERROR_FAILURE;
 						}
