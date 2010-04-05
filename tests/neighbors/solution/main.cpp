@@ -122,7 +122,6 @@ int main(int argc, char* argv[])
 
 
   // begin of test
-	Element* e;
   Neighbor* neighb = NULL;
   int n_neighbors = 0;
   scalar* fn_central = NULL;
