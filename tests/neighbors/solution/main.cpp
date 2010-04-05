@@ -1,7 +1,6 @@
 #include "hermes2d.h"
 #include "solver_umfpack.h"
-#include <iostream>
-using namespace std;
+
 // This test is for testing if works in proper way transformation of solution on central or neighbor element and if
 // afterward orientation of neighbors array of function values is done right.
 
@@ -28,8 +27,8 @@ const int P_INIT = 9;
 // projected function
 double F(double x, double y)
 {
-	return 1;
-//  return 2*(x - 0.5)*(x - 0.5) + 6*(y + 0.7)*(y + 0.7) - 36;
+//	return 1;
+  return 2*(x - 0.5)*(x - 0.5) + 6*(y + 0.7)*(y + 0.7) - 36;
 }
 
 // bilinear and linear form defining the projection
@@ -45,7 +44,7 @@ Scalar linear_form(int n, double *wt, Func<Real> *v, Geom<Real> *e, ExtData<Scal
 {
   Scalar result = 0;
   for (int i = 0; i < n; i++)
-    result += wt[i] * (1 * v->val[i]);  //( 2*pow(e->x[i] - 0.5, 2) + 6 * pow(e->y[i] + 0.7, 2) - 25)
+    result += wt[i] * (( 2*pow(e->x[i] - 0.5, 2) + 6 * pow(e->y[i] + 0.7, 2) - 25) * v->val[i]);  //( 2*pow(e->x[i] - 0.5, 2) + 6 * pow(e->y[i] + 0.7, 2) - 25)
   return result;
 }
 
@@ -123,6 +122,7 @@ int main(int argc, char* argv[])
 
 
   // begin of test
+	Element* e;
   Neighbor* neighb = NULL;
   int n_neighbors = 0;
   scalar* fn_central = NULL;
@@ -140,12 +140,6 @@ int main(int argc, char* argv[])
   			n_neighbors = neighb->number_of_neighbs();
   			for(int j = 0; j < n_neighbors; j++)
   			{
-				int* trans = neighb->get_transformations(j);
-				for(int l = 0; l < 20; l++)
-						printf("transformations: %d ", trans[l]);
-				cout << "\n";
-
-
   				fn_central = neighb->get_fn_values_central(j);
   				fn_neighbor = neighb->get_fn_values_neighbor(j);
 					n_integ_points = neighb->get_n_integ_points(j);
@@ -157,7 +151,6 @@ int main(int argc, char* argv[])
 							for(int l = 0; l < n_integ_points; l++)
 								debug_log("fn_central and fn_neighbor[%d]: %f, %f", l, fn_central[l], fn_neighbor[l]);
 							printf("failure! \n");
-								getchar();
 							return H2D_ERROR_FAILURE;
 						}
 					}
@@ -168,7 +161,6 @@ int main(int argc, char* argv[])
   }
 
   printf("success! \n");
-	getchar();
   return H2D_ERROR_SUCCESS;
 }
 
