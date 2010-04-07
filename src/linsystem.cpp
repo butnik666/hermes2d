@@ -540,8 +540,8 @@ void LinSystem::assemble(bool rhsonly)
         refmap[j].force_transform(pss[j]->get_transform(), pss[j]->get_ctm());
       }
       marker = e0->marker;
-
       init_cache();
+
       //// assemble volume bilinear forms //////////////////////////////////////
       for (unsigned int ww = 0; ww < s->bfvol.size(); ww++)
       {
@@ -614,15 +614,13 @@ void LinSystem::assemble(bool rhsonly)
         }
       }
 
-
-      // assemble surface integrals now: loop through boundary edges of the element
+       // assemble surface integrals now: loop through boundary edges of the element
       for (unsigned int edge = 0; edge < e0->nvert; edge++)
       {
           // we now determine this for each weakform, so we comment this out
           // for now:
         //if (!bnd[edge]) continue;
         marker = ep[edge].marker;
-
 
 
 
@@ -704,6 +702,7 @@ void LinSystem::assemble(bool rhsonly)
           if (isempty[lfs->i]) continue;
           // now we determine whether to call the form depending on the "area"
           // and the BC "marker" parameters:
+
           int call_form = 0;
           if (lfs->area == ANY_EDGE) {
               // call the form on all element edges (both boundary and interior)
@@ -718,13 +717,13 @@ void LinSystem::assemble(bool rhsonly)
                   call_form = 1;
               }
           }
+
           if (!call_form) continue;
           m = lfs->i;  fv = spss[m];  am = &al[m];
 
           //if (!nat[m]) continue;
           ep[edge].base = trav.get_base();
           ep[edge].space_v = spaces[m];
-
           for (int i = 0; i < am->cnt; i++)
           {
             if (am->dof[i] < 0) continue;
@@ -732,6 +731,7 @@ void LinSystem::assemble(bool rhsonly)
             RHS[am->dof[i]] += eval_form(lfs, fv, refmap+m, ep+edge) * am->coef[i];
           }
         }
+
       }
       delete_cache();
     }
@@ -792,7 +792,7 @@ Func<double>* LinSystem::get_fn(PrecalcShapeset *fu, RefMap *rm, const int order
 // Caching transformed values
 void LinSystem::init_cache()
 {
-  for (int i = 0; i < g_max_quad + 1 + 4; i++)
+  for (int i = 0; i < g_max_quad+1 + 4 * g_max_quad + 4; i++)
   {
     cache_e[i] = NULL;
     cache_jwt[i] = NULL;
@@ -801,7 +801,7 @@ void LinSystem::init_cache()
 
 void LinSystem::delete_cache()
 {
-  for (int i = 0; i < g_max_quad + 1 + 4; i++)
+  for (int i = 0; i < g_max_quad+1 + 4 * g_max_quad + 4; i++)
   {
     if (cache_e[i] != NULL)
     {
@@ -923,7 +923,6 @@ scalar LinSystem::eval_form(WeakForm::BiFormSurf *bf, PrecalcShapeset *fu,
   Quad2D* quad = fu->get_quad_2d();
   assert(ep->edge < 5);
   int eo = quad->get_edge_points(ep->edge);
-  //printf("edge=%d, eo=%d\n", ep->edge, eo);
   double3* pt = quad->get_points(eo);
   int np = quad->get_num_points(eo);
 
@@ -961,7 +960,6 @@ scalar LinSystem::eval_form(WeakForm::LiFormSurf *lf, PrecalcShapeset *fv, RefMa
   int eo = quad->get_edge_points(ep->edge);
   double3* pt = quad->get_points(eo);
   int np = quad->get_num_points(eo);
-
   // init geometry and jacobian*weights
   if (cache_e[eo] == NULL)
   {
@@ -973,13 +971,10 @@ scalar LinSystem::eval_form(WeakForm::LiFormSurf *lf, PrecalcShapeset *fv, RefMa
   }
   Geom<double>* e = cache_e[eo];
   double* jwt = cache_jwt[eo];
-
   // function values and values of external functions
   Func<double>* v = get_fn(fv, rv, eo);
   ExtData<scalar>* ext = init_ext_fns(lf->ext, rv, eo);
-
   scalar res = lf->fn(np, jwt, v, e, ext);
-
   ext->free(); delete ext;
   return 0.5 * res; // Edges are parametrized from 0 to 1 while integration weights
                     // are defined in (-1, 1). Thus multiplying with 0.5 to correct
