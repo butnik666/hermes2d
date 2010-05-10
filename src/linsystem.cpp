@@ -696,7 +696,6 @@ void LinSystem::assemble(bool rhsonly)
 						m = bfs->i;  fv = spss[m];  am = &al[m];
 						n = bfs->j;  fu = pss[n];   an = &al[n];
 
-						if (!nat[m] || !nat[n]) continue;
 						ep[edge].base = trav.get_base();
 						ep[edge].space_v = spaces[m];
 						ep[edge].space_u = spaces[n];
@@ -727,13 +726,12 @@ void LinSystem::assemble(bool rhsonly)
 					// assemble surface linear forms /////////////////////////////////////
 					for (unsigned int ww = 0; ww < s->lfsurf.size(); ww++)
 					{
-
 						WeakForm::LiFormSurf* lfs = s->lfsurf[ww];
 						if (isempty[lfs->i]) continue;
 
 						if ((lfs->area != H2D_ANY_BOUNDARY_EDGE &&lfs->area != H2D_ANY_EDGE && lfs->area != H2D_ANY_INNER_EDGE) && !wf->is_in_area(marker, lfs->area)) continue;
 						m = lfs->i;  fv = spss[m];  am = &al[m];
-			//			if (!nat[m]) continue;
+
 						ep[edge].base = trav.get_base();
 						ep[edge].space_v = spaces[m];
 
@@ -1027,7 +1025,6 @@ scalar LinSystem::eval_form_neighbor(WeakForm::LiFormSurf *lf, PrecalcShapeset *
 	NeighborSearch* neighb;
 	Space* space = ep->space_v;
 
-
 	neighb = new NeighborSearch(el, mesh);
 	neighb->set_active_edge(ep->edge);
 	int n_neighbors = neighb->get_number_of_neighbs();
@@ -1056,6 +1053,7 @@ scalar LinSystem::eval_form_neighbor(WeakForm::LiFormSurf *lf, PrecalcShapeset *
 		}
 		debug_log("maximum of orders: %d", help_var);
 	}
+
 
 	for(int i = 0; i < n_neighbors; i++)
 	{
@@ -1107,7 +1105,7 @@ scalar LinSystem::eval_form_neighbor(WeakForm::LiFormSurf *lf, PrecalcShapeset *
 
 		  // function values
 		  Func<double>* v = get_fn(fv, rv, eo);
-		  debug_log("hodnota: %f ", lf->fn(np, jwt, v, e, ext_data));
+		  scalar local = lf->fn(np, jwt, v, e, ext_data);
 		  res += lf->fn(np, jwt, v, e, ext_data);
 		  ext_data->free();
 		  ext_data->free_neighbor();
