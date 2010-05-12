@@ -557,6 +557,7 @@ void LinSystem::assemble(bool rhsonly)
 
         // assemble the local stiffness matrix for the form bfv
         scalar bi, **mat = get_matrix_buffer(std::max(am->cnt, an->cnt));
+
         for (int i = 0; i < am->cnt; i++)
         {
           if (!tra && (k = am->dof[i]) < 0) continue;
@@ -619,15 +620,19 @@ void LinSystem::assemble(bool rhsonly)
        // assemble surface integrals now: loop through boundary edges of the element
       for (unsigned int edge = 0; edge < e0->nvert; edge++)
       {
-//        if (!bnd[edge]) continue;
         marker = ep[edge].marker;
         // obtain the list of shape functions which are nonzero on this edge
         for (unsigned int i = 0; i < s->idx.size(); i++) {
           if (e[i] == NULL) continue;
           j = s->idx[i];
           nat[j] = (spaces[j]->bc_type_callback(marker) == BC_NATURAL);
-//          if ((nat[j] = (spaces[j]->bc_type_callback(marker) == BC_NATURAL)))
-            spaces[j]->get_edge_assembly_list(e[i], edge, al + j);
+          int type_of_space = spaces[j]->get_type();
+
+          if (type_of_space == 3) // case when we are in L2 space
+            spaces[j]->get_element_assembly_list(e[i], al + j);
+          else
+          	spaces[j]->get_edge_assembly_list(e[i], edge, al + j);
+
         }
 
         if(bnd[edge] == 1)
@@ -1018,6 +1023,11 @@ scalar LinSystem::eval_form_neighbor(WeakForm::LiFormSurf *lf, PrecalcShapeset *
   int idx_ref = rv->get_transform();
   int idx_form = fv->get_transform();
 	int n_ext = lf->ext.size();
+	if(n_ext == 0)
+	{
+		debug_log("In initialization of surface linear form weren't added any extern functions (f.e. solution from previous step)");
+		return 0;
+	}
 
 	Element* el;
 	el = rv->get_active_element();
@@ -1053,7 +1063,6 @@ scalar LinSystem::eval_form_neighbor(WeakForm::LiFormSurf *lf, PrecalcShapeset *
 		}
 	}
 
-
 	for(int i = 0; i < n_neighbors; i++)
 	{
 		
@@ -1084,35 +1093,33 @@ scalar LinSystem::eval_form_neighbor(WeakForm::LiFormSurf *lf, PrecalcShapeset *
 
 		int eo = quad->get_edge_points(ep->edge,order);
 	  double3* pt = quad->get_points(eo);
-		int np = neighb->get_n_integ_points(i);
+		int np = quad->get_num_points(eo);
 
 
-	    cache_e[eo] = init_geom_surf(rv, ep, eo);
-	    double3* tan = rv->get_tangent(ep->edge, order);
-	    cache_jwt[eo] = new double[np];
-	    for(int i = 0; i < np; i++)
-	      cache_jwt[eo][i] = pt[i][2] * tan[i][2];
+    cache_e[eo] = init_geom_surf(rv, ep, eo);
+    double3* tan = rv->get_tangent(ep->edge, order);
+    cache_jwt[eo] = new double[np];
+    for(int i = 0; i < np; i++)
+      cache_jwt[eo][i] = pt[i][2] * tan[i][2];
 
-		  Geom<double>* e = cache_e[eo];
-		  double* jwt = cache_jwt[eo];
+    Geom<double>* e = cache_e[eo];
+	  double* jwt = cache_jwt[eo];
 
+	  ext_data->fn = ext_fn_central;
+	  ext_data->nf = lf->ext.size();
+	  ext_data->set_fn_neighbor(ext_fn_neighbor);
+	  ext_data->set_nf_neighbor(lf->ext.size());
 
-		  ext_data->fn = ext_fn_central;
-		  ext_data->nf = lf->ext.size();
-		  ext_data->set_fn_neighbor(ext_fn_neighbor);
-		  ext_data->set_nf_neighbor(lf->ext.size());
+	  // function values
+		Func<double>* v = get_fn(fv, rv, eo);
+	  scalar local = lf->fn(np, jwt, v, e, ext_data);
+	  res += lf->fn(np, jwt, v, e, ext_data);
+	  ext_data->free();
+	  ext_data->free_neighbor();
+	  delete ext_data;
 
-		  // function values
-		  Func<double>* v = get_fn(fv, rv, eo);
-		  scalar local = lf->fn(np, jwt, v, e, ext_data);
-		  res += lf->fn(np, jwt, v, e, ext_data);
-		  ext_data->free();
-		  ext_data->free_neighbor();
-		  delete ext_data;
-
-		  rv->set_transform(idx_ref);
-		  fv->set_transform(idx_form);
-
+	  rv->set_transform(idx_ref);
+	  fv->set_transform(idx_form);
 	}
 
 	delete neighb;
