@@ -97,6 +97,7 @@ public:
 
 	//! Set MeshFunction (solution), this method is used in case you want to get values of different solutions over the same edge.
 	//! Don't have to make another instance of the class.
+
 	void set_solution(MeshFunction* solution);
 
 
@@ -184,6 +185,7 @@ private:
 	void reverse_vector(scalar* vector, int n);
 
   //! Structure containing all needed information about neighbor's edge. Initial values of both members are invalid.
+
 	struct NeighborEdgeInfo{
 		NeighborEdgeInfo(){
 			local_num_of_edge = -1;

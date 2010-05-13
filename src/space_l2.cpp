@@ -81,7 +81,3 @@ void L2Space::get_bubble_assembly_list(Element* e, AsmList* al)
   for (int i = 0, dof = ed->bdof; i < ed->n; i++, dof += stride)
     al->add_triplet(*indices++, dof, 1.0);
 }
-
-
-
-
