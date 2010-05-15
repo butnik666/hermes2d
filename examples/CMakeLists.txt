@@ -21,6 +21,7 @@ add_subdirectory(neutronics-4-group)
 add_subdirectory(neutronics-4-group-adapt)
 add_subdirectory(singular-perturbation)
 add_subdirectory(heat-and-moisture)
+add_subdirectory(val_neighb)
 
 
 if(WITH_TRILINOS)
